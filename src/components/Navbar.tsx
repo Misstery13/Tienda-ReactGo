@@ -9,7 +9,7 @@ interface NavbarProps {
 
 const Navbar = ({ isCollapsed, onToggle }: NavbarProps) => {
 const { totalItems } = useCart();
-const { logout, userEmail } = useAuth();
+const { logout, user } = useAuth();
 const navigate = useNavigate();
 const handleLogout = () => {
  logout();
@@ -27,7 +27,7 @@ const handleLogout = () => {
  {isCollapsed ? <Menu size={24} /> : <X size={24} />}
  </button>
  <h2 className="hidden sm:block text-slate-600 font-medium text-lg">
- Panel de Administración
+ {user?.rol === "admin" ? "Panel de Administración" : "Tienda MultiCatálogo"}
  </h2>
  <div className="flex items-end gap-6">
  <Link
@@ -44,7 +44,16 @@ transform translate-x-1 -translate-y-1">
  )}
  </Link>
  <div className="flex items-center gap-4">
- <span className="text-sm text-slate-500">{userEmail}</span>
+ <span className="text-sm text-slate-500 hidden sm:block">{user?.email}</span>
+ <span
+ className={`hidden md:inline-block text-xs font-semibold px-2 py-1 rounded-full uppercase ${
+ user?.rol === "admin"
+ ? "bg-amber-100 text-amber-700"
+ : "bg-teal-100 text-teal-700"
+ }`}
+ >
+ {user?.rol}
+ </span>
  {/* Contenedor relativo con la clase 'group' para detectar el hover */}
  <div className="relative group cursor-pointer pb-2">
  {/* Círculo del usuario / Avatar */}

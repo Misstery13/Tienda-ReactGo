@@ -1,42 +1,57 @@
+// src/context/AuthContext.tsx
 import { createContext, useContext, useState, type ReactNode } from 'react';
+
+// 1. Tipos de rol que maneja la aplicación
+export type Rol = 'admin' | 'cliente';
+
+// 2. Usuario autenticado: correo + rol (lo entrega la API en /api/login)
+export interface Usuario {
+  email: string;
+  rol: Rol;
+}
+
 interface AuthContextType {
- isAuthenticated: boolean;
- userEmail: string | null; // <-- 1. Nuevo estado para el correo
- token: string | null;
- login: (email: string, token: string) => void; // <-- 2. La función ahora recibe el correo
- logout: () => void;
+  isAuthenticated: boolean;
+  user: Usuario | null;
+  token: string | null;
+  login: (usuario: Usuario, token: string) => void;
+  logout: () => void;
 }
-const AuthContext = createContext<AuthContextType | 
-undefined>(undefined);
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
 export const useAuth = () => {
- const context = useContext(AuthContext);
- if (!context) {
- throw new Error("useAuth debe ser usado dentro de un AuthProvider");
- }
- return context;
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth debe ser usado dentro de un AuthProvider");
+  }
+  return context;
 };
+
 interface AuthProviderProps {
- children: ReactNode;
+  children: ReactNode;
 }
+
 export const AuthProvider = ({ children }: AuthProviderProps) => {
- const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
- const [userEmail, setUserEmail] = useState<string | null>(null); // <-- 3. Estado local
- const [token, setToken] = useState<string | null>(null);
- // 4. Actualizamos las funciones
- const login = (email: string, apiToken: string) => {
- setIsAuthenticated(true);
- setUserEmail(email); // Guardamos el correo
- setToken(apiToken);
- };
- 
- const logout = () => {
- setIsAuthenticated(false);
- setUserEmail(null); // Limpiamos el correo al salir
- setToken(null);
- };
- return (
- <AuthContext.Provider value={{ isAuthenticated, userEmail, token, login, logout }}>
- {children}
- </AuthContext.Provider>
- );
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [user, setUser] = useState<Usuario | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+
+  const login = (usuario: Usuario, apiToken: string) => {
+    setIsAuthenticated(true);
+    setUser(usuario);
+    setToken(apiToken);
+  };
+
+  const logout = () => {
+    setIsAuthenticated(false);
+    setUser(null);
+    setToken(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, user, token, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
