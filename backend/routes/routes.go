@@ -10,9 +10,15 @@ import (
 
 // SetupRoutes es una función que recibe un puntero a la aplicación Fiber (*fiber.App) para inyectarle las rutas.
 func SetupRoutes(app *fiber.App) {
+	// Estado del servicio.
+	app.Get("/api/health", controllers.HealthCheck)
+
 	// Definimos una ruta HTTP POST en "/api/login" y la enlazamos a la función Login del paquete controllers.
 	app.Post("/api/login", controllers.Login)
 
 	// Definimos una ruta HTTP GET en "/api/productos" y la enlazamos a la función GetProductos del paquete controllers.
 	app.Get("/api/productos", controllers.GetProductos)
+
+	// Detalle de un producto por su identificador.
+	app.Get("/api/productos/:id", controllers.GetProductoPorID)
 }

@@ -2,26 +2,46 @@
 package controllers
 
 import (
+	"strconv"
+
 	// Importamos Fiber para manejar la respuesta HTTP.
 	"github.com/gofiber/fiber/v2"
-	// Importamos nuestro paquete de modelos para usar la estructura Producto.
+	// Importamos nuestro paquete de modelos para usar la estructura APIError.
 	"multicatalogo-backend/models"
+	// El catálogo vive en el repositorio.
+	"multicatalogo-backend/repository"
 )
 
-// GetProductos es la función controladora encargada de devolver el catálogo de artículos.
+// GetProductos devuelve el catálogo completo de artículos.
 func GetProductos(c *fiber.Ctx) error {
-	// Declaramos e inicializamos un 'slice' (arreglo dinámico) usando nuestro modelo models.Producto.
-	productos := []models.Producto{
-		// Agregamos el primer producto con sus respectivos valores para ID, Nombre, Precio e Img.
-		{ID: 1, Nombre: "Serum Revitalizante", Precio: 45.00, Img: "https://picsum.photos/seed/serum/150"},
-		// Agregamos el segundo producto a la lista.
-		{ID: 2, Nombre: "Crema Hidratante Pro", Precio: 32.50, Img: "https://picsum.photos/seed/crema/150"},
-		// Agregamos el tercer producto a la lista.
-		{ID: 3, Nombre: "Tónico Purificante", Precio: 28.00, Img: "https://picsum.photos/seed/tonico/150"},
-		// Agregamos el cuarto producto a la lista.
-		{ID: 4, Nombre: "Mascarilla Nocturna", Precio: 50.00, Img: "https://picsum.photos/seed/mascarilla/150"},
-	}
-	
 	// Fiber convierte automáticamente el slice de estructuras a formato JSON y lo envía como respuesta al cliente.
-	return c.JSON(productos)
+	return c.JSON(repository.ObtenerProductos())
+}
+
+// GetProductoPorID devuelve un solo producto a partir del :id de la ruta.
+func GetProductoPorID(c *fiber.Ctx) error {
+	// El parámetro de la URL llega siempre como texto: hay que convertirlo y controlar el error.
+	idParam := c.Params("id")
+
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		// El cliente envió texto en lugar de un número: HTTP 400.
+		return c.Status(fiber.StatusBadRequest).JSON(models.NuevoAPIError(
+			fiber.StatusBadRequest,
+			"El id del producto debe ser un número entero",
+			fiber.Map{"valor_recibido": idParam},
+		))
+	}
+
+	// Un id válido pero inexistente no es un error de formato, sino un recurso no encontrado: HTTP 404.
+	producto, encontrado := repository.ObtenerProductoPorID(id)
+	if !encontrado {
+		return c.Status(fiber.StatusNotFound).JSON(models.NuevoAPIError(
+			fiber.StatusNotFound,
+			"Producto no encontrado",
+			fiber.Map{"id": id},
+		))
+	}
+
+	return c.JSON(producto)
 }
