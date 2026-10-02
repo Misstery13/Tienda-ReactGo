@@ -1,0 +1,43 @@
+# Reglas del agente — Tienda ReactGo
+
+## Navegación
+- NUNCA hagas escaneos recursivos ni leas carpetas completas.
+- Consulta primero `PROJECT_MAP.md` para ubicar el archivo exacto antes de leer código.
+
+## Seguimiento de tareas
+- Al iniciar cualquier sesión o tarea, lee PRIMERO `REQUIREMENTS_CHECKLIST.md` para
+  conocer el estado y qué falta por implementar.
+- No explores el código para adivinar el progreso.
+
+## Actualización continua
+- Cada vez que completes una tarea, prueba o endpoint con éxito, actualiza
+  inmediatamente `REQUIREMENTS_CHECKLIST.md`: marca la casilla (`- [x]`) y actualiza
+  la sección "Estado General".
+
+## Ahorro de tokens
+- Lee únicamente los archivos que vas a modificar, de forma puntual.
+- Prohibido reescribir archivos enteros si solo cambia una función.
+
+## Uso de Playwright
+- NUNCA tomes capturas de pantalla ni pidas el DOM completo/HTML de la página.
+- Extrae únicamente el texto visible o el selector CSS puntual del elemento que se prueba.
+- Para verificar APIs o respuestas JSON, usa peticiones HTTP directas en lugar de abrir
+  el navegador.
+
+## Uso de Memory
+- Guarda en memoria persistente ÚNICAMENTE:
+  1. Causa raíz y solución final de errores de configuración o entorno recurrentes.
+  2. Puertos locales y variables clave del proyecto.
+- PROHIBIDO guardar código fuente completo, trazas de error o historial de chat.
+
+## Manejo de errores y pruebas
+- Si una prueba falla, ejecuta SOLO ese test individual, nunca la suite completa.
+- Si el mismo error persiste tras 2 intentos, DETENTE y explica la hipótesis conceptual
+  antes de editar más archivos.
+
+## Contexto del proyecto
+- Frontend React en la raíz (puerto 5173); backend Go/Fiber en `backend/` (puerto 3000).
+- Prohibido cambiar las firmas de los endpoints existentes o la forma del JSON que el
+  frontend ya consume.
+- Los datos viven en `backend/repository/`; los controladores solo manejan HTTP.
+- Los errores HTTP siempre usan `models.APIError`.
