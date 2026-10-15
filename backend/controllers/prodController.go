@@ -2,6 +2,8 @@
 package controllers
 
 import (
+	"errors"
+	"log"
 	"strconv"
 
 	// Importamos Fiber para manejar la respuesta HTTP.
@@ -12,14 +14,34 @@ import (
 	"multicatalogo-backend/repository"
 )
 
+// ProductoController recibe el repositorio por inyección de dependencias.
+type ProductoController struct {
+	repo repository.DBRepository
+}
+
+// NuevoProductoController construye el controlador con su dependencia.
+func NuevoProductoController(repo repository.DBRepository) *ProductoController {
+	return &ProductoController{repo: repo}
+}
+
 // GetProductos devuelve el catálogo completo de artículos.
-func GetProductos(c *fiber.Ctx) error {
+func (pc *ProductoController) GetProductos(c *fiber.Ctx) error {
+	productos, err := pc.repo.ObtenerProductos(c.Context())
+	if err != nil {
+		log.Printf("error listando productos: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.NuevoAPIError(
+			fiber.StatusInternalServerError,
+			"Error al consultar el catálogo",
+			nil,
+		))
+	}
+
 	// Fiber convierte automáticamente el slice de estructuras a formato JSON y lo envía como respuesta al cliente.
-	return c.JSON(repository.ObtenerProductos())
+	return c.JSON(productos)
 }
 
 // GetProductoPorID devuelve un solo producto a partir del :id de la ruta.
-func GetProductoPorID(c *fiber.Ctx) error {
+func (pc *ProductoController) GetProductoPorID(c *fiber.Ctx) error {
 	// El parámetro de la URL llega siempre como texto: hay que convertirlo y controlar el error.
 	idParam := c.Params("id")
 
@@ -33,13 +55,21 @@ func GetProductoPorID(c *fiber.Ctx) error {
 		))
 	}
 
-	// Un id válido pero inexistente no es un error de formato, sino un recurso no encontrado: HTTP 404.
-	producto, encontrado := repository.ObtenerProductoPorID(id)
-	if !encontrado {
+	producto, err := pc.repo.ObtenerProductoPorID(c.Context(), id)
+	if errors.Is(err, repository.ErrNoEncontrado) {
+		// Un id válido pero inexistente no es un error de formato, sino un recurso no encontrado: HTTP 404.
 		return c.Status(fiber.StatusNotFound).JSON(models.NuevoAPIError(
 			fiber.StatusNotFound,
 			"Producto no encontrado",
 			fiber.Map{"id": id},
+		))
+	}
+	if err != nil {
+		log.Printf("error consultando producto %d: %v", id, err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.NuevoAPIError(
+			fiber.StatusInternalServerError,
+			"Error al consultar el producto",
+			nil,
 		))
 	}
 

@@ -2,16 +2,61 @@
 package main
 
 import (
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+
 	// Importamos el framework principal Fiber.
 	"github.com/gofiber/fiber/v2"
 	// Importamos el middleware CORS para gestionar la seguridad entre distintos puertos/dominios.
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	// Configuración de infraestructura (variables de entorno y conexiones).
+	"multicatalogo-backend/config"
+	// Controladores y capa de datos que se inyectan al arrancar.
+	"multicatalogo-backend/controllers"
+	"multicatalogo-backend/repository"
 	// Importamos nuestro propio paquete de rutas para delegarle la configuración de los endpoints.
 	"multicatalogo-backend/routes"
 )
 
 // func main es el punto de entrada de la aplicación en Go. Todo comienza a ejecutarse aquí.
 func main() {
+	// Variables de entorno (.env) antes de cualquier conexión.
+	config.CargarEnv()
+
+	// Sin base de datos la API no puede responder nada útil: se aborta el arranque.
+	pool, err := config.ConectarDB()
+	if err != nil {
+		log.Fatalf("Error de inicio: %v", err)
+	}
+	// El pool se cierra al terminar main.
+	defer pool.Close()
+
+	// Redis es opcional: si no responde, la API sigue sirviendo desde PostgreSQL.
+	clienteRedis := config.ConectarRedis()
+	if clienteRedis != nil {
+		defer clienteRedis.Close()
+	}
+
+	// ===== Inyección de dependencias =====
+	// Se construyen aquí, una sola vez, y se pasan hacia abajo.
+	var cache repository.CacheRepository = repository.SinCache{}
+	if clienteRedis != nil {
+		cache = repository.NuevoRedisCache(clienteRedis)
+	}
+
+	baseDatos := repository.NuevoPostgresRepository(pool)          // habla con PostgreSQL
+	conCache := repository.NuevoCachedRepository(baseDatos, cache) // le agrega Cache-Aside
+
+	controladores := routes.Controladores{
+		Health:    controllers.NuevoHealthController(),
+		Auth:      controllers.NuevoAuthController(conCache),
+		Productos: controllers.NuevoProductoController(conCache),
+		Red:       controllers.NuevoRedController(conCache),
+		Checkout:  controllers.NuevoCheckoutController(conCache, cache),
+	}
+
 	// Instanciamos una nueva aplicación de Fiber y la guardamos en la variable 'app'.
 	app := fiber.New()
 
@@ -23,16 +68,29 @@ func main() {
 		AllowHeaders: "Origin, Content-Type, Accept",
 	}))
 
-	// Llamamos a la función SetupRoutes de nuestro paquete 'routes', enviándole la instancia de nuestra 'app'.
-	routes.SetupRoutes(app)
+	// Las rutas reciben los controladores ya construidos con sus dependencias.
+	routes.SetupRoutes(app, controladores)
 
-	// Ponemos a la aplicación a escuchar peticiones en el puerto 3000 de la máquina local. (Bloquea el hilo de ejecución).
-	app.Listen(":3000")
+	// Ctrl+C debe cerrar el pool de conexiones antes de salir.
+	cerrar := make(chan os.Signal, 1)
+	signal.Notify(cerrar, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-cerrar
+		log.Println("Apagando el servidor...")
+		if err := app.Shutdown(); err != nil {
+			log.Printf("error al apagar: %v", err)
+		}
+	}()
+
+	// Ponemos a la aplicación a escuchar peticiones en el puerto configurado.
+	puerto := os.Getenv("APP_PORT")
+	if puerto == "" {
+		puerto = "3000"
+	}
+	if err := app.Listen(":" + puerto); err != nil {
+		log.Printf("servidor detenido: %v", err)
+	}
 }
-
-
-
-
 
 // // main.go
 // package main

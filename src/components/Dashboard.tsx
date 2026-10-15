@@ -1,20 +1,48 @@
 // src/components/Dashboard.tsx
 // Resumen general con KPIs calculados desde el estado real (Tema 5):
 // - Funciones puras de data/red.ts en lugar de valores estáticos
+import { useEffect, useState } from 'react';
 import {
-  redInicial,
   contarRed,
   sumarVentasRed,
   sumarComisiones,
   nivelAlcanzado,
   comisionDeReferido,
+  type Referido,
 } from '../data/red';
+import { getRed } from '../services/redService';
+import { useAuth } from '../context/AuthContext';
 
 const Dashboard = () => {
-  const referidosDirectos = redInicial.hijos?.length ?? 0;
-  const referidosActivos = contarRed(redInicial);
-  const ventasRed = sumarVentasRed(redInicial);
-  const comisionesMes = sumarComisiones(redInicial);
+  const { user } = useAuth();
+  const [red, setRed] = useState<Referido | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
+
+  // Los KPIs salen del mismo árbol que sirve la API.
+  useEffect(() => {
+    getRed(user?.email ?? 'default')
+      .then((data) => setRed(data))
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [user?.email]);
+
+  if (loading) {
+    return <p className="text-slate-500">Cargando resumen...</p>;
+  }
+
+  if (error || !red) {
+    return (
+      <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-200">
+        {error || 'No se pudo cargar el resumen'}
+      </div>
+    );
+  }
+
+  const referidosDirectos = red.hijos?.length ?? 0;
+  const referidosActivos = contarRed(red);
+  const ventasRed = sumarVentasRed(red);
+  const comisionesMes = sumarComisiones(red);
   const nivel = nivelAlcanzado(referidosDirectos);
 
   const kpis = [
@@ -25,7 +53,7 @@ const Dashboard = () => {
   ];
 
   // Top 3 referidos por ventas (sin recursión: solo nivel 1)
-  const topReferidos = [...(redInicial.hijos ?? [])]
+  const topReferidos = [...(red.hijos ?? [])]
     .sort((a, b) => b.ventas - a.ventas)
     .slice(0, 3);
 

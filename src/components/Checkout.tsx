@@ -6,25 +6,20 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-
-interface DatosEnvio {
-  nombre: string;
-  email: string;
-  direccion: string;
-  ciudad: string;
-  telefono: string;
-  metodoPago: string;
-}
+import { useAuth } from '../context/AuthContext';
+import { crearPedido, type DatosEnvio } from '../services/checkoutService';
 
 const METODOS_PAGO = ["Tarjeta de crédito", "Transferencia bancaria", "Efectivo contra entrega"];
 
 const Checkout = () => {
   const { cart, totalPrice, clearCart } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [error, setError] = useState<string>("");
   const [datos, setDatos] = useState<DatosEnvio>({
     nombre: "",
-    email: "",
+    email: user?.email ?? "",
     direccion: "",
     ciudad: "",
     telefono: "",
@@ -48,33 +43,34 @@ const Checkout = () => {
     setDatos((prev) => ({ ...prev, [campo]: valor }));
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError("");
     setProcesando(true);
 
-    // Procesamiento del pago simulado con un pequeño retraso
-    setTimeout(() => {
-      const pedido = {
-        numero: `MC-${Date.now().toString().slice(-6)}`,
-        items: cart.map((item) => ({
-          nombre: item.nombre,
-          cantidad: item.cantidad,
-          precio: item.precio,
-        })),
-        total: totalPrice,
-        cliente: { nombre: datos.nombre, email: datos.email, ciudad: datos.ciudad },
-        fecha: new Date().toLocaleString("es-EC"),
-      };
+    try {
+      // El servidor procesa la compra en una transacción y devuelve el pedido.
+      const pedido = await crearPedido(datos, cart);
 
       // El carrito se vacía y los datos del pedido pasan a la confirmación
       clearCart();
       navigate("/confirmacion", { state: { pedido } });
-    }, 1200);
+    } catch (err) {
+      // Si la transacción se revirtió, el carrito queda intacto para reintentar.
+      setError(err instanceof Error ? err.message : "No se pudo procesar el pedido");
+      setProcesando(false);
+    }
   };
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-slate-800 mb-6">Finalizar Compra</h1>
+
+      {error && (
+        <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 border border-red-200">
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* ===== FORMULARIO DE ENVÍO ===== */}

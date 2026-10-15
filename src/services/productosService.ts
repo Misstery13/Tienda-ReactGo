@@ -1,21 +1,37 @@
 // src/services/productosService.ts
-// Capa de servicios del catálogo.
-// Actualmente devuelve datos de ejemplo (mock) simulando una llamada asíncrona.
-// En la Unidad 2, estas funciones se reemplazarán por fetch a GET /api/productos
-// sin necesidad de modificar los componentes que las consumen.
+// Capa de servicios del catálogo: consume la API RESTful en Go.
+// Los datos provienen de PostgreSQL a través de GET /api/productos.
 
-import { productosMock, type Producto } from "../data/productos";
+import { API_URL, leerError } from "./api";
+import type { Producto } from "../data/productos";
 
-// Simula GET /api/productos (lista completa)
-export const getProductos = (): Promise<Producto[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(productosMock), 400);
-  });
+// GET /api/productos
+export const getProductos = async (): Promise<Producto[]> => {
+  const response = await fetch(`${API_URL}/api/productos`);
+
+  if (!response.ok) {
+    throw new Error(await leerError(response, "No se pudo obtener el catálogo"));
+  }
+
+  return (await response.json()) as Producto[];
 };
 
-// Simula GET /api/productos/:id (detalle de un producto)
-export const getProductoById = (id: number): Promise<Producto | undefined> => {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(productosMock.find((p) => p.id === id)), 300);
-  });
+// GET /api/productos/:id
+export const getProductoById = async (id: number): Promise<Producto | undefined> => {
+  const response = await fetch(`${API_URL}/api/productos/${id}`);
+
+  // El backend responde 404 cuando el id es válido pero el producto no existe.
+  if (response.status === 404) {
+    return undefined;
+  }
+
+  if (!response.ok) {
+    throw new Error(await leerError(response, "No se pudo obtener el producto"));
+  }
+
+  return (await response.json()) as Producto;
 };
+
+// Las categorías de los filtros salen de los productos recibidos, sin lista fija.
+export const obtenerCategorias = (productos: Producto[]): string[] =>
+  [...new Set(productos.map((p) => p.categoria))].filter(Boolean).sort();

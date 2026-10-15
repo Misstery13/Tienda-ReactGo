@@ -6,13 +6,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { getProductos } from '../services/productosService';
-import { categorias, type Producto } from '../data/productos';
+import { getProductos, obtenerCategorias } from '../services/productosService';
+import type { Producto } from '../data/productos';
 
 const Catalogo = () => {
   const { addToCart } = useCart();
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
 
   // Lectura del query string (?categoria=...) enviado desde el Storefront
   const [searchParams, setSearchParams] = useSearchParams();
@@ -22,14 +23,15 @@ const Catalogo = () => {
   const [categoria, setCategoria] = useState<string>(searchParams.get("categoria") ?? "Todas");
 
   useEffect(() => {
-    // Servicio de productos (mock que simula la API)
+    // Catálogo servido por la API (GET /api/productos)
     getProductos()
-      .then((data) => {
-        setProductos(data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      .then((data) => setProductos(data))
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
+
+  // Las categorías del filtro salen de los productos recibidos.
+  const categorias = useMemo(() => obtenerCategorias(productos), [productos]);
 
   // Filtrado con useMemo: solo se recalcula cuando cambian busqueda/categoria/productos
   const productosFiltrados = useMemo(() => {
@@ -56,6 +58,14 @@ const Catalogo = () => {
 
   if (loading) {
     return <div className="text-center p-8">Cargando catálogo...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-200">
+        {error}
+      </div>
+    );
   }
 
   return (

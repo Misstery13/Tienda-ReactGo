@@ -4,27 +4,28 @@
 // - Sección de categorías
 // - Productos destacados
 // - Explicación del modelo multinivel
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getProductos } from '../services/productosService';
-import { categorias, type Producto } from '../data/productos';
+import { getProductos, obtenerCategorias } from '../services/productosService';
+import type { Producto } from '../data/productos';
 
 const Storefront = () => {
   const { user } = useAuth();
-  const [destacados, setDestacados] = useState<Producto[]>([]);
+  const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Servicio de productos (mock que simula la API)
+    // Catálogo servido por la API (GET /api/productos)
     getProductos()
-      .then((data) => {
-        setDestacados(data.slice(0, 4)); // solo 4 destacados
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      .then((data) => setProductos(data))
+      .catch(() => setProductos([]))
+      .finally(() => setLoading(false));
   }, []);
+
+  const destacados = useMemo(() => productos.slice(0, 4), [productos]);
+  const categorias = useMemo(() => obtenerCategorias(productos), [productos]);
 
   return (
     <div>

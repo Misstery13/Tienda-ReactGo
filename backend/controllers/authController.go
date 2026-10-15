@@ -2,6 +2,8 @@
 package controllers
 
 import (
+	"errors"
+	"log"
 	"strings"
 
 	// Importamos el framework Fiber para tener acceso al contexto (c *fiber.Ctx) de la petición HTTP.
@@ -12,8 +14,18 @@ import (
 	"multicatalogo-backend/repository"
 )
 
+// AuthController recibe el repositorio por inyección de dependencias.
+type AuthController struct {
+	repo repository.DBRepository
+}
+
+// NuevoAuthController construye el controlador con su dependencia.
+func NuevoAuthController(repo repository.DBRepository) *AuthController {
+	return &AuthController{repo: repo}
+}
+
 // Login valida las credenciales recibidas y devuelve el token y el rol del usuario.
-func Login(c *fiber.Ctx) error {
+func (ac *AuthController) Login(c *fiber.Ctx) error {
 	// Creamos una variable 'req' del tipo LoginRequest (ubicada en nuestro paquete models) para almacenar los datos.
 	var req models.LoginRequest
 
@@ -47,12 +59,21 @@ func Login(c *fiber.Ctx) error {
 		))
 	}
 
-	// El repositorio resuelve si las credenciales corresponden a un usuario registrado.
-	usuario, encontrado := repository.BuscarUsuario(email, password)
-	if !encontrado {
+	// El repositorio consulta PostgreSQL.
+	usuario, err := ac.repo.BuscarUsuario(c.Context(), email, password)
+	if errors.Is(err, repository.ErrNoEncontrado) {
 		return c.Status(fiber.StatusUnauthorized).JSON(models.NuevoAPIError(
 			fiber.StatusUnauthorized,
 			"Credenciales incorrectas",
+			nil,
+		))
+	}
+	if err != nil {
+		// Un fallo de base de datos no es culpa del cliente: HTTP 500.
+		log.Printf("error en login: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.NuevoAPIError(
+			fiber.StatusInternalServerError,
+			"Error al consultar la base de datos",
 			nil,
 		))
 	}

@@ -9,9 +9,18 @@ export interface LoginResponse {
   rol: string;
 }
 
-interface ApiError {
-  error: string;
+// Formato estándar de error del backend: { status, message, details }
+interface APIError {
+  status?: number;
+  message?: string;
+  details?: unknown;
 }
+
+// Extrae el mensaje que envió el servidor; si no hay JSON válido, usa el de respaldo.
+export const leerError = async (response: Response, porDefecto: string): Promise<string> => {
+  const data = (await response.json().catch(() => null)) as APIError | null;
+  return data?.message ?? porDefecto;
+};
 
 // POST /api/login
 export const loginRequest = async (email: string, password: string): Promise<LoginResponse> => {
@@ -22,8 +31,7 @@ export const loginRequest = async (email: string, password: string): Promise<Log
   });
 
   if (!response.ok) {
-    const data = (await response.json().catch(() => null)) as ApiError | null;
-    throw new Error(data?.error ?? 'Credenciales incorrectas');
+    throw new Error(await leerError(response, 'Credenciales incorrectas'));
   }
 
   return (await response.json()) as LoginResponse;
