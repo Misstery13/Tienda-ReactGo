@@ -1,7 +1,7 @@
 // src/components/Login.tsx
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth, type Rol } from "../context/AuthContext";
+import { useAuth, type Rol } from "../context/auth";
 import { loginRequest } from "../services/api";
 
 const Login = () => {

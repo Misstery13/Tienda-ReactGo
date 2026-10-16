@@ -11,6 +11,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
+	"multicatalogo-backend/middleware"
 	"multicatalogo-backend/models"
 	"multicatalogo-backend/repository"
 )
@@ -37,6 +38,10 @@ func (cc *CheckoutController) Checkout(c *fiber.Ctx) error {
 			err.Error(),
 		))
 	}
+
+	// La identidad la pone el token, no el cuerpo de la petición: así nadie
+	// puede atribuir una compra (ni sus comisiones) a otra cuenta.
+	req.Email = middleware.EmailDeSesion(c)
 
 	// Validación de los datos de envío antes de abrir la transacción.
 	faltantes := []string{}
@@ -67,6 +72,7 @@ func (cc *CheckoutController) Checkout(c *fiber.Ctx) error {
 	switch {
 	case errors.Is(err, repository.ErrCarritoVacio),
 		errors.Is(err, repository.ErrProductoInexistente),
+		errors.Is(err, repository.ErrCantidadInvalida),
 		errors.Is(err, repository.ErrStockInsuficiente):
 		// Datos del cliente incorrectos: la transacción ya se revirtió.
 		return c.Status(fiber.StatusBadRequest).JSON(models.NuevoAPIError(

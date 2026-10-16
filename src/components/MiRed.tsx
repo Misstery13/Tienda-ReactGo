@@ -13,7 +13,6 @@ import {
   type Referido,
 } from '../data/red';
 import { getRed } from '../services/redService';
-import { useAuth } from '../context/AuthContext';
 
 // Colores y etiquetas por nivel para el árbol
 const NIVEL_ESTILO: Record<number, { badge: string; border: string; tasa: string }> = {
@@ -64,18 +63,17 @@ const NodoReferido = ({ nodo }: { nodo: Referido }) => {
 };
 
 const MiRed = () => {
-  const { user } = useAuth();
   const [red, setRed] = useState<Referido | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
 
   // El árbol se pide a la API; el email identifica de quién es la red.
   useEffect(() => {
-    getRed(user?.email ?? 'default')
+    getRed()
       .then((data) => setRed(data))
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [user?.email]);
+  }, []);
 
   if (loading) {
     return <p className="text-slate-500">Cargando tu red...</p>;

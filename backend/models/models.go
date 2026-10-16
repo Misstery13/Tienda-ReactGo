@@ -1,6 +1,8 @@
 // Declaramos el paquete models para agrupar las estructuras de datos de la aplicación.
 package models
 
+import "os"
+
 // LoginRequest define la estructura esperada para el cuerpo de la petición (JSON) al iniciar sesión.
 type LoginRequest struct {
 	// Email representa el correo del usuario; la etiqueta `json:"email"` indica cómo se mapea el JSON a esta variable.
@@ -65,7 +67,12 @@ type APIError struct {
 }
 
 // NuevoAPIError construye un APIError listo para enviarse como respuesta.
+// Details solo viaja al cliente en desarrollo (APP_ENV=dev): en producción
+// podría filtrar detalles internos de la base de datos.
 func NuevoAPIError(status int, message string, details interface{}) APIError {
+	if os.Getenv("APP_ENV") != "dev" {
+		details = nil
+	}
 	return APIError{Status: status, Message: message, Details: details}
 }
 

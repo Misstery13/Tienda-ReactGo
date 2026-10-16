@@ -4,7 +4,7 @@
 // - Enlace al flujo de checkout
 import { Link } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
-import { useCart } from '../context/CartContext';
+import { useCart } from '../context/cart';
 
 const Carrito = () => {
   const {
@@ -59,7 +59,7 @@ const Carrito = () => {
                   <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden">
                     <button
                       onClick={() => decrementQuantity(item.id)}
-                      className="px-3 py-2 text-slate-600 hover:bg-slate-100 transition"
+                      className="min-h-11 min-w-11 px-3 text-slate-600 hover:bg-slate-100 transition"
                       aria-label="Disminuir cantidad"
                     >
                       −
@@ -69,7 +69,7 @@ const Carrito = () => {
                     </span>
                     <button
                       onClick={() => incrementQuantity(item.id)}
-                      className="px-3 py-2 text-slate-600 hover:bg-slate-100 transition"
+                      className="min-h-11 min-w-11 px-3 text-slate-600 hover:bg-slate-100 transition"
                       aria-label="Aumentar cantidad"
                     >
                       +
@@ -82,7 +82,7 @@ const Carrito = () => {
 
                   <button
                     onClick={() => removeFromCart(item.id)}
-                    className="text-red-500 hover:text-red-700 transition"
+                    className="min-h-11 min-w-11 flex items-center justify-center text-red-500 hover:text-red-700 transition"
                     title="Eliminar producto"
                     aria-label="Eliminar producto"
                   >

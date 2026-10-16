@@ -7,6 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
+	"multicatalogo-backend/middleware"
 	"multicatalogo-backend/models"
 	"multicatalogo-backend/repository"
 )
@@ -22,9 +23,10 @@ func NuevoRedController(repo *repository.CachedRepository) *RedController {
 }
 
 // GetRed devuelve el árbol completo de referidos con su jerarquía.
-// El email identifica de quién es la red y forma la clave de caché red:tree:{email}.
+// El email sale del token firmado, nunca de un parámetro que el cliente controle:
+// de lo contrario cualquiera podría pedir la red de otra cuenta.
 func (rc *RedController) GetRed(c *fiber.Ctx) error {
-	emailUsuario := c.Query("email", "default")
+	emailUsuario := middleware.EmailDeSesion(c)
 
 	red, err := rc.repo.ObtenerRedDe(c.Context(), emailUsuario)
 	if errors.Is(err, repository.ErrNoEncontrado) {

@@ -8,23 +8,27 @@ import (
 
 	// Importamos el framework Fiber para tener acceso al contexto (c *fiber.Ctx) de la petición HTTP.
 	"github.com/gofiber/fiber/v2"
+	"golang.org/x/crypto/bcrypt"
+
+	"multicatalogo-backend/auth"
 	// Importamos nuestro paquete de modelos para poder usar la estructura LoginRequest.
 	"multicatalogo-backend/models"
 	// El repositorio es el que conoce los datos; el controlador solo maneja la petición y la respuesta.
 	"multicatalogo-backend/repository"
 )
 
-// AuthController recibe el repositorio por inyección de dependencias.
+// AuthController recibe el repositorio y el secreto de firma por inyección.
 type AuthController struct {
-	repo repository.DBRepository
+	repo    repository.DBRepository
+	secreto string
 }
 
-// NuevoAuthController construye el controlador con su dependencia.
-func NuevoAuthController(repo repository.DBRepository) *AuthController {
-	return &AuthController{repo: repo}
+// NuevoAuthController construye el controlador con sus dependencias.
+func NuevoAuthController(repo repository.DBRepository, secreto string) *AuthController {
+	return &AuthController{repo: repo, secreto: secreto}
 }
 
-// Login valida las credenciales recibidas y devuelve el token y el rol del usuario.
+// Login valida las credenciales recibidas y devuelve un JWT firmado y el rol del usuario.
 func (ac *AuthController) Login(c *fiber.Ctx) error {
 	// Creamos una variable 'req' del tipo LoginRequest (ubicada en nuestro paquete models) para almacenar los datos.
 	var req models.LoginRequest
@@ -59,17 +63,8 @@ func (ac *AuthController) Login(c *fiber.Ctx) error {
 		))
 	}
 
-	// El repositorio consulta PostgreSQL.
-	usuario, err := ac.repo.BuscarUsuario(c.Context(), email, password)
-	if errors.Is(err, repository.ErrNoEncontrado) {
-		return c.Status(fiber.StatusUnauthorized).JSON(models.NuevoAPIError(
-			fiber.StatusUnauthorized,
-			"Credenciales incorrectas",
-			nil,
-		))
-	}
-	if err != nil {
-		// Un fallo de base de datos no es culpa del cliente: HTTP 500.
+	usuario, err := ac.repo.BuscarUsuarioPorEmail(c.Context(), email)
+	if err != nil && !errors.Is(err, repository.ErrNoEncontrado) {
 		log.Printf("error en login: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.NuevoAPIError(
 			fiber.StatusInternalServerError,
@@ -78,9 +73,38 @@ func (ac *AuthController) Login(c *fiber.Ctx) error {
 		))
 	}
 
+	// Mismo mensaje si el usuario no existe o si la contraseña es incorrecta:
+	// así no se revela qué correos están registrados.
+	credencialesInvalidas := errors.Is(err, repository.ErrNoEncontrado)
+	if !credencialesInvalidas {
+		// bcrypt compara la contraseña contra el hash guardado en PostgreSQL.
+		if bcrypt.CompareHashAndPassword([]byte(usuario.Password), []byte(password)) != nil {
+			credencialesInvalidas = true
+		}
+	}
+
+	if credencialesInvalidas {
+		return c.Status(fiber.StatusUnauthorized).JSON(models.NuevoAPIError(
+			fiber.StatusUnauthorized,
+			"Credenciales incorrectas",
+			nil,
+		))
+	}
+
+	// Token firmado: a diferencia del anterior, no se puede inventar a mano.
+	token, err := auth.GenerarToken(usuario, ac.secreto)
+	if err != nil {
+		log.Printf("error firmando el token: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.NuevoAPIError(
+			fiber.StatusInternalServerError,
+			"No se pudo iniciar la sesión",
+			nil,
+		))
+	}
+
 	// Respuesta exitosa: mismo contrato JSON que el frontend ya consume (token, email, rol).
 	return c.JSON(models.LoginResponse{
-		Token: usuario.Token,
+		Token: token,
 		Email: usuario.Email,
 		Rol:   usuario.Rol,
 	})

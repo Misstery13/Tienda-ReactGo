@@ -11,21 +11,19 @@ import {
   type Referido,
 } from '../data/red';
 import { getRed } from '../services/redService';
-import { useAuth } from '../context/AuthContext';
 
 const Dashboard = () => {
-  const { user } = useAuth();
   const [red, setRed] = useState<Referido | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
 
   // Los KPIs salen del mismo árbol que sirve la API.
   useEffect(() => {
-    getRed(user?.email ?? 'default')
+    getRed()
       .then((data) => setRed(data))
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [user?.email]);
+  }, []);
 
   if (loading) {
     return <p className="text-slate-500">Cargando resumen...</p>;

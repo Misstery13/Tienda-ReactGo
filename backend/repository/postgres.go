@@ -29,14 +29,17 @@ func NuevoPostgresRepository(db *pgxpool.Pool) *PostgresRepository {
 
 // BuscarUsuario devuelve el usuario cuyas credenciales coinciden.
 // El correo se compara sin distinguir mayúsculas; la contraseña sí es sensible.
-func (r *PostgresRepository) BuscarUsuario(ctx context.Context, email, password string) (models.Usuario, error) {
+// BuscarUsuarioPorEmail devuelve el usuario con su hash de contraseña.
+// La comparación la hace el controlador con bcrypt: la base nunca ve la
+// contraseña en claro ni decide si es correcta.
+func (r *PostgresRepository) BuscarUsuarioPorEmail(ctx context.Context, email string) (models.Usuario, error) {
 	const consulta = `
-		SELECT id, email, rol
+		SELECT id, email, password, rol
 		FROM usuarios
-		WHERE LOWER(email) = LOWER($1) AND password = $2`
+		WHERE LOWER(email) = LOWER($1)`
 
 	var u models.Usuario
-	err := r.db.QueryRow(ctx, consulta, email, password).Scan(&u.ID, &u.Email, &u.Rol)
+	err := r.db.QueryRow(ctx, consulta, email).Scan(&u.ID, &u.Email, &u.Password, &u.Rol)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return models.Usuario{}, ErrNoEncontrado
 	}
@@ -44,9 +47,12 @@ func (r *PostgresRepository) BuscarUsuario(ctx context.Context, email, password 
 		return models.Usuario{}, fmt.Errorf("consultando usuario: %w", err)
 	}
 
-	// El token sigue siendo ficticio; se reemplazará por JWT firmado más adelante.
-	u.Token = fmt.Sprintf("fake-jwt-token-%d", u.ID)
 	return u, nil
+}
+
+// Ping comprueba que la base responde (lo usa /api/health).
+func (r *PostgresRepository) Ping(ctx context.Context) error {
+	return r.db.Ping(ctx)
 }
 
 // ObtenerProductos devuelve el catálogo completo ordenado por id.

@@ -1,8 +1,8 @@
 // src/services/checkoutService.ts
 // Envío del pedido al microservicio de checkout (POST /api/checkout).
 
-import { API_URL, leerError } from "./api";
-import type { CartItem } from "../context/CartContext";
+import { apiFetch } from "./http";
+import type { CartItem } from "../context/cart";
 
 export interface DatosEnvio {
   nombre: string;
@@ -23,25 +23,21 @@ export interface PedidoConfirmado {
 }
 
 // POST /api/checkout — solo viajan id y cantidad: el precio lo pone el servidor.
-export const crearPedido = async (
+export const crearPedido = (
   datos: DatosEnvio,
   carrito: CartItem[]
-): Promise<PedidoConfirmado> => {
-  const response = await fetch(`${API_URL}/api/checkout`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ...datos,
-      items: carrito.map((item) => ({
-        producto_id: item.id,
-        cantidad: item.cantidad,
-      })),
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(await leerError(response, "No se pudo procesar el pedido"));
-  }
-
-  return (await response.json()) as PedidoConfirmado;
-};
+): Promise<PedidoConfirmado> =>
+  apiFetch<PedidoConfirmado>(
+    "/api/checkout",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        ...datos,
+        items: carrito.map((item) => ({
+          producto_id: item.id,
+          cantidad: item.cantidad,
+        })),
+      }),
+    },
+    "No se pudo procesar el pedido"
+  );

@@ -16,6 +16,7 @@ import (
 // Errores de negocio del checkout. El controlador los traduce a códigos HTTP.
 var (
 	ErrCarritoVacio        = errors.New("el carrito está vacío")
+	ErrCantidadInvalida    = errors.New("la cantidad debe ser mayor que cero")
 	ErrProductoInexistente = errors.New("el producto no existe")
 	ErrStockInsuficiente   = errors.New("stock insuficiente")
 )
@@ -69,7 +70,7 @@ func (r *PostgresRepository) CrearPedido(ctx context.Context, req models.Checkou
 
 	for _, item := range req.Items {
 		if item.Cantidad <= 0 {
-			return models.Pedido{}, fmt.Errorf("%w: cantidad inválida para el producto %d", ErrProductoInexistente, item.ProductoID)
+			return models.Pedido{}, fmt.Errorf("%w (producto %d)", ErrCantidadInvalida, item.ProductoID)
 		}
 
 		// El precio se lee de la base, nunca del cliente. FOR UPDATE bloquea la

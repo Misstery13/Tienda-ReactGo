@@ -5,8 +5,8 @@
 // - Simula el procesamiento del pago y redirige a /confirmacion
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/cart';
+import { useAuth } from '../context/auth';
 import { crearPedido, type DatosEnvio } from '../services/checkoutService';
 
 const METODOS_PAGO = ["Tarjeta de crédito", "Transferencia bancaria", "Efectivo contra entrega"];

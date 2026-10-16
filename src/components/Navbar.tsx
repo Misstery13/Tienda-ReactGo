@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useCart } from "../context/CartContext";
-import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/cart";
+import { useAuth } from "../context/auth";
 import { Menu, ShoppingCart, X } from "lucide-react";
 interface NavbarProps {
  isCollapsed: boolean;
@@ -74,10 +74,10 @@ _fOyYStXpfSiJ_edO3ghlSRnH2w09Kg"
  </div>
  {/* Menú desplegable */}
  <div className="absolute right-0 top-full mt-1 w-36 bg-white border 
-border-slate-200 rounded-lg shadow-lg opacity-0 invisible grouphover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+border-slate-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
  <button
  onClick={handleLogout}
- className="w-full text-left px-4 py-2 text-sm text-red-600 fontsemibold hover:bg-red-50 rounded-md transition-colors"
+ className="w-full text-left px-4 py-2 text-sm text-red-600 font-semibold min-h-11 hover:bg-red-50 rounded-md transition-colors"
  >
  Cerrar Sesión
  </button>

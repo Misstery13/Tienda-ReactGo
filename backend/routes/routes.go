@@ -6,6 +6,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	// Importamos nuestro paquete de controladores, donde residen las funciones que se ejecutarán en cada ruta.
 	"multicatalogo-backend/controllers"
+	// El middleware protege las rutas privadas.
+	"multicatalogo-backend/middleware"
 )
 
 // Controladores agrupa las dependencias que main.go construye e inyecta.
@@ -17,8 +19,11 @@ type Controladores struct {
 	Checkout  *controllers.CheckoutController
 }
 
-// SetupRoutes recibe la aplicación Fiber y los controladores ya construidos.
-func SetupRoutes(app *fiber.App, c Controladores) {
+// SetupRoutes recibe la aplicación Fiber, los controladores y el secreto de firma.
+func SetupRoutes(app *fiber.App, c Controladores, secretoJWT string) {
+	// Middleware reutilizable para las rutas que exigen sesión iniciada.
+	requiereSesion := middleware.RequireAuth(secretoJWT)
+
 	// Estado del servicio.
 	app.Get("/api/health", c.Health.HealthCheck)
 
@@ -31,9 +36,11 @@ func SetupRoutes(app *fiber.App, c Controladores) {
 	// Detalle de un producto por su identificador.
 	app.Get("/api/productos/:id", c.Productos.GetProductoPorID)
 
-	// Árbol multinivel de referidos.
-	app.Get("/api/red", c.Red.GetRed)
+	// ===== Rutas protegidas: exigen un JWT válido =====
 
-	// Procesamiento transaccional de la compra.
-	app.Post("/api/checkout", c.Checkout.Checkout)
+	// El árbol multinivel es información de negocio: solo administradores.
+	app.Get("/api/red", requiereSesion, middleware.RequireAdmin(), c.Red.GetRed)
+
+	// Procesamiento transaccional de la compra: cualquier usuario autenticado.
+	app.Post("/api/checkout", requiereSesion, c.Checkout.Checkout)
 }

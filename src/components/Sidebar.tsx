@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { House, LayoutGrid, Store, Users, type LucideIcon } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/auth";
 
 interface SidebarProps {
   isCollapsed: boolean;

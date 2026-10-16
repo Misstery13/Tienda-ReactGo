@@ -49,9 +49,15 @@ func main() {
 	baseDatos := repository.NuevoPostgresRepository(pool)          // habla con PostgreSQL
 	conCache := repository.NuevoCachedRepository(baseDatos, cache) // le agrega Cache-Aside
 
+	// El secreto de firma nunca va en el código: sale del entorno.
+	secretoJWT := os.Getenv("JWT_SECRET")
+	if secretoJWT == "" {
+		log.Fatal("Error de inicio: falta la variable JWT_SECRET")
+	}
+
 	controladores := routes.Controladores{
-		Health:    controllers.NuevoHealthController(),
-		Auth:      controllers.NuevoAuthController(conCache),
+		Health:    controllers.NuevoHealthController(conCache, cache),
+		Auth:      controllers.NuevoAuthController(conCache, secretoJWT),
 		Productos: controllers.NuevoProductoController(conCache),
 		Red:       controllers.NuevoRedController(conCache),
 		Checkout:  controllers.NuevoCheckoutController(conCache, cache),
@@ -61,15 +67,21 @@ func main() {
 	app := fiber.New()
 
 	// Implementamos el middleware CORS a nivel global usando app.Use() para interceptar todas las peticiones entrantes.
+	// Los orígenes permitidos se configuran por entorno (CORS_ORIGINS).
+	origenes := os.Getenv("CORS_ORIGINS")
+	if origenes == "" {
+		origenes = "http://localhost:5173, http://127.0.0.1:5173, http://localhost:5174"
+	}
+
 	app.Use(cors.New(cors.Config{
-		// Configuramos el CORS para permitir únicamente peticiones provenientes del frontend (Vite) en el puerto 5173.
-		AllowOrigins: "http://localhost:5173, http://127.0.0.1:5173",
-		// Declaramos de forma explícita qué cabeceras (Headers) se permitirán en la comunicación.
-		AllowHeaders: "Origin, Content-Type, Accept",
+		// Solo el frontend declarado puede llamar a esta API desde el navegador.
+		AllowOrigins: origenes,
+		// Authorization es necesaria para enviar el token JWT.
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 	}))
 
-	// Las rutas reciben los controladores ya construidos con sus dependencias.
-	routes.SetupRoutes(app, controladores)
+	// Las rutas reciben los controladores y el middleware de autenticación.
+	routes.SetupRoutes(app, controladores, secretoJWT)
 
 	// Ctrl+C debe cerrar el pool de conexiones antes de salir.
 	cerrar := make(chan os.Signal, 1)
@@ -83,7 +95,10 @@ func main() {
 	}()
 
 	// Ponemos a la aplicación a escuchar peticiones en el puerto configurado.
-	puerto := os.Getenv("APP_PORT")
+	puerto := os.Getenv("PORT")
+	if puerto == "" {
+		puerto = os.Getenv("APP_PORT")
+	}
 	if puerto == "" {
 		puerto = "3000"
 	}

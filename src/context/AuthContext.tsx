@@ -1,56 +1,35 @@
 // src/context/AuthContext.tsx
-import { createContext, useContext, useState, type ReactNode } from 'react';
-
-// 1. Tipos de rol que maneja la aplicación
-export type Rol = 'admin' | 'cliente';
-
-// 2. Usuario autenticado: correo + rol (lo entrega la API en /api/login)
-export interface Usuario {
-  email: string;
-  rol: Rol;
-}
-
-interface AuthContextType {
-  isAuthenticated: boolean;
-  user: Usuario | null;
-  token: string | null;
-  login: (usuario: Usuario, token: string) => void;
-  logout: () => void;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth debe ser usado dentro de un AuthProvider");
-  }
-  return context;
-};
+import { useState, type ReactNode } from 'react';
+import { AuthContext, type Usuario } from './auth';
+import { borrarSesion, guardarSesion, leerSesion } from '../services/http';
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [user, setUser] = useState<Usuario | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  // La sesión se recupera de localStorage al montar: así sobrevive a un F5.
+  const sesionGuardada = leerSesion();
+
+  const [user, setUser] = useState<Usuario | null>(sesionGuardada?.usuario ?? null);
+  const [token, setToken] = useState<string | null>(sesionGuardada?.token ?? null);
 
   const login = (usuario: Usuario, apiToken: string) => {
-    setIsAuthenticated(true);
     setUser(usuario);
     setToken(apiToken);
+    guardarSesion({ usuario, token: apiToken });
   };
 
   const logout = () => {
-    setIsAuthenticated(false);
     setUser(null);
     setToken(null);
+    borrarSesion();
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, token, login, logout }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated: token !== null, user, token, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
