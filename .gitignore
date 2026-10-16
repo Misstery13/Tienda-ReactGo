@@ -32,3 +32,8 @@ backend/*.exe
 
 # README (pendiente de subir)
 README.md
+
+# Entorno virtual de Python (servicio SaaS)
+saas/.venv
+__pycache__/
+*.pyc

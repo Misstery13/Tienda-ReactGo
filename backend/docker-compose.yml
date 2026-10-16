@@ -32,5 +32,24 @@ services:
       timeout: 3s
       retries: 10
 
+  # Capa SaaS/multitenant de la Unidad 3.
+  saas:
+    build: ../saas
+    container_name: multicatalogo-saas
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-multicatalogo}
+      DB_PASSWORD: ${DB_PASSWORD:-multicatalogo}
+      DB_NAME: ${DB_NAME:-multicatalogo}
+      JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+    ports:
+      - "${SAAS_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres_data:

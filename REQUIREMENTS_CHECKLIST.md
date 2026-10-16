@@ -18,8 +18,8 @@
 | Ítem | Valor |
 |---|---|
 | **Hito actual** | **Unidades 1 y 2 completadas** (SPA con sesión JWT persistida + backend seguro: bcrypt, JWT real, rutas protegidas, health con deps) |
-| **Última tarea completada** | Seguridad U2-T4 (bcrypt + JWT + RequireAuth + identidad por token) + mejoras U1 (apiFetch, persistencia, audit mobile) — 2026-10-16 |
-| **Siguiente tarea pendiente** | U3-T1: scaffold FastAPI `Unidad3_SaaS/` |
+| **Última tarea completada** | U3-T1: scaffold FastAPI en `saas/` — multitenancy por discriminador, JWT compartido con Go, planes y suscripciones — 2026-10-16 |
+| **Siguiente tarea pendiente** | U3-T2: aislar por tenant las consultas del núcleo en Go (hoy `tenant_id` existe pero el backend aún no filtra por él) |
 | **Bloqueadores** | Los contenedores Docker de otro proyecto ocupan **:3000** y **:5173** → este proyecto corre en **:3001** (API) y **:5174** (Vite). PostgreSQL del proyecto en **:5433** (el PostgreSQL 18 del instalador EDB ocupa el 5432) |
 
 ## Entorno local verificado
@@ -130,7 +130,38 @@ React SPA (:5174) ──► Go/Fiber (:3001) ──► PostgreSQL 16 (:5433) + R
 - [ ] Búsqueda y paginación en el servidor
 - [ ] Pruebas automatizadas (la inyección de dependencias ya las habilita)
 
-## Unidades siguientes
+---
 
-- [ ] U3 — Capa SaaS/multitenant en FastAPI
-- [ ] U4 — Despliegue contenerizado con proxy inverso y SSL
+# UNIDAD 3 — FULL-STACK / SaaS MULTITENANT (FastAPI)
+
+## U3-T1 · Scaffold del servicio SaaS
+
+- [x] Proyecto `saas/` con FastAPI + asyncpg + pydantic-settings + PyJWT
+- [x] `app/config.py` con settings desde `.env`; `app/db.py` con pool asyncpg y ciclo de vida
+- [x] Prefijo `/api/saas` para que el proxy inverso de U4 reparta por ruta
+- [x] `GET /api/saas/health` con ping real a PostgreSQL (503 si cae)
+- [x] Migración `004_saas.sql`: `planes`, `tenants`, `suscripciones` + `tenant_id` en usuarios/productos/referidos
+- [x] Índice único parcial: un tenant no puede tener dos suscripciones activas
+- [x] Los datos existentes quedaron asignados al tenant por defecto `upse`
+- [x] **JWT compartido**: un token emitido por `/api/login` de Go es aceptado por FastAPI
+      (verificado: admin 200, cliente 403, token adulterado 401)
+- [x] `requiere_admin` protege el alta y el listado de tenants
+- [x] `GET /api/saas/planes` público; `POST /api/saas/tenants` transaccional (tenant + suscripción)
+- [x] Resolución de tenant por cabecera `X-Tenant` o por el usuario del token
+- [x] `GET /api/saas/mi-suscripcion` con uso real frente a los límites del plan
+- [x] Errores con el mismo contrato `{status, message, details?}` que la API en Go
+- [x] `Dockerfile` + servicio `saas` en `docker-compose.yml`
+- [x] Verificado en vivo: alta de tenant 201, slug duplicado 409, slug inválido 400, plan inexistente 400
+
+## U3-T2 · Aislamiento por tenant (pendiente)
+
+- [ ] El núcleo en Go debe filtrar por `tenant_id` en productos, usuarios y referidos
+- [ ] Propagar el tenant en el JWT (claim `tenant`) para evitar una consulta por petición
+- [ ] Aplicar los límites del plan al crear usuarios o productos
+- [ ] Registro self-service de un tenant nuevo con su primer administrador
+
+# UNIDAD 4 — DESPLIEGUE (pendiente)
+
+- [ ] Proxy inverso (Caddy/Nginx): `/api/tx/*` → Go, `/api/saas/*` → FastAPI
+- [ ] SSL y variables de entorno de producción
+- [ ] `docker compose` único que levante los cuatro servicios

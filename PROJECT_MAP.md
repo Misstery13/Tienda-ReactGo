@@ -8,8 +8,13 @@ Mapa arquitectónico para ubicar archivos sin escanear el proyecto.
 | Capa | Tecnología | Puerto |
 |---|---|---|
 | Frontend | React 19 + TypeScript + Vite + Tailwind 4 + React Router 7 | 5173 |
-| Backend | Go 1.26 + Fiber v2 | 3000 |
-| Datos | Estáticos en memoria (PostgreSQL pendiente, Unidad 2) | — |
+| Núcleo transaccional | Go 1.26 + Fiber v2 (U2) | 3000 |
+| Capa SaaS/multitenant | Python 3 + FastAPI + asyncpg (U3) | 8000 |
+| Datos | PostgreSQL 16 + Redis | 5433 / 6379 |
+
+> Si otros proyectos ocupan esos puertos, use `PORT` (Go) y `PORT` (SaaS).
+> En esta máquina los contenedores de otro proyecto toman 3000 y 5173, por lo
+> que se usa 3001 (API) y 5174 (Vite).
 
 > Nota: el material del curso nombra las carpetas `Unidad1_Frontend/Proyecto_base` y
 > `Unidad2_Backend/multicatalogo-backend`. En este repositorio equivalen a la raíz
@@ -20,9 +25,11 @@ Mapa arquitectónico para ubicar archivos sin escanear el proyecto.
 ```
 Practica03/              # raíz del repo = frontend
 ├── src/                 # código React
-├── backend/             # API RESTful en Go
+├── backend/             # núcleo transaccional en Go (U2)
+│   └── database/        # TODAS las migraciones SQL (001 a 004)
+├── saas/                # capa SaaS/multitenant en FastAPI (U3)
 ├── public/              # estáticos servidos por Vite
-└── .env                 # VITE_API_URL=http://localhost:3000
+└── .env                 # VITE_API_URL
 ```
 
 ## Frontend — `src/`
@@ -89,11 +96,35 @@ Formato de error estándar: `{ "status": int, "message": string, "details": any?
 `admin@upse.edu.ec` / `123456` — rol admin
 `cliente@upse.edu.ec` / `123456` — rol cliente
 
+## Capa SaaS — `saas/` (Unidad 3)
+
+Python + FastAPI + asyncpg. Se monta bajo `/api/saas` y comparte la base de
+datos y el secreto JWT con el núcleo en Go: un token emitido por `/api/login`
+de Fiber es válido aquí, sin duplicar la autenticación.
+
+| Archivo | Responsabilidad |
+|---|---|
+| `app/main.py` | App FastAPI, CORS, ciclo de vida del pool, prefijo `/api/saas` |
+| `app/config.py` | Settings desde `.env` (pydantic-settings) |
+| `app/db.py` | Pool asyncpg; dependencia `get_pool` |
+| `app/security.py` | Verifica el JWT de Go; dependencias `usuario_actual` y `requiere_admin` |
+| `app/tenancy.py` | Resuelve el tenant por `X-Tenant` o por el usuario del token |
+| `app/schemas.py` | Modelos Pydantic de entrada y salida |
+| `app/routers/health.py` | `GET /api/saas/health` con ping real a PostgreSQL |
+| `app/routers/planes.py` | `GET /api/saas/planes` (público) |
+| `app/routers/tenants.py` | `GET`/`POST /api/saas/tenants` (solo admin) |
+| `app/routers/suscripciones.py` | `GET /api/saas/mi-suscripcion` con uso vs. límites |
+
+Modelo de multitenancy: **discriminador** (`tenant_id` en cada tabla).
+Documentación interactiva: <http://localhost:8000/api/saas/docs>
+
 ## Arranque
 
 ```
-backend:   cd backend && go run .      # :3000
-frontend:  npm run dev                 # :5173
+docker:    cd backend && docker compose up -d     # PostgreSQL + Redis + SaaS
+backend:   cd backend && go run .                 # :3000
+saas:      cd saas && ./.venv/bin/uvicorn app.main:app --port 8000
+frontend:  npm run dev                            # :5173
 ```
 
 ## Reglas que no se rompen
