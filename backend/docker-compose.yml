@@ -1,7 +1,14 @@
+# Solo para DESARROLLO local: base de datos y caché.
+# El despliegue completo (frontend, API, SaaS y túnel) está en el
+# docker-compose.yml de la raíz del proyecto.
+#
+# Los nombres y puertos difieren del de producción para que ambos
+# puedan convivir en la misma máquina sin chocar.
+
 services:
   postgres:
     image: postgres:16
-    container_name: multicatalogo-db
+    container_name: multicatalogo-db-dev
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-multicatalogo}
@@ -11,9 +18,8 @@ services:
       # 5433 en el host para no chocar con otro PostgreSQL ya instalado.
       - "${DB_PORT:-5433}:5432"
     volumes:
-      # Los scripts de esta carpeta se ejecutan solo la primera vez que se crea el volumen.
       - ./database:/docker-entrypoint-initdb.d:ro
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_dev:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-multicatalogo} -d ${DB_NAME:-multicatalogo}"]
       interval: 5s
@@ -22,7 +28,7 @@ services:
 
   redis:
     image: redis:alpine
-    container_name: multicatalogo-cache
+    container_name: multicatalogo-cache-dev
     restart: unless-stopped
     ports:
       - "${REDIS_PORT:-6379}:6379"
@@ -32,24 +38,5 @@ services:
       timeout: 3s
       retries: 10
 
-  # Capa SaaS/multitenant de la Unidad 3.
-  saas:
-    build: ../saas
-    container_name: multicatalogo-saas
-    restart: unless-stopped
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: ${DB_USER:-multicatalogo}
-      DB_PASSWORD: ${DB_PASSWORD:-multicatalogo}
-      DB_NAME: ${DB_NAME:-multicatalogo}
-      JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
-    ports:
-      - "${SAAS_PORT:-8000}:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-
 volumes:
-  postgres_data:
+  postgres_dev:

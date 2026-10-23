@@ -37,3 +37,7 @@ README.md
 saas/.venv
 __pycache__/
 *.pyc
+
+# Credenciales del túnel de Cloudflare
+cloudflared/credentials.json
+cloudflared/*.json

@@ -1,0 +1,113 @@
+# Pila completa de MultiCatálogo para desplegar en una máquina propia
+# expuesta con Cloudflare Tunnel.
+#
+#   Internet ──► Cloudflare Tunnel ──► web (nginx)
+#                                        ├─ /api/saas/* ──► saas  (FastAPI)
+#                                        ├─ /api/*      ──► backend (Go/Fiber)
+#                                        └─ /*          ──► SPA de React
+#                                                    │
+#                                      postgres (16) + redis
+#
+# Solo 'web' se expone hacia afuera, y a través del túnel: ningún puerto
+# de la base de datos queda abierto a internet.
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: multicatalogo-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:?falta DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?falta DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:?falta DB_NAME}
+    volumes:
+      # Las migraciones 001..009 se ejecutan en orden alfabético
+      # la primera vez que se crea el volumen.
+      - ./backend/database:/docker-entrypoint-initdb.d:ro
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Sin 'ports': la base solo es visible dentro de la red de Docker.
+
+  redis:
+    image: redis:alpine
+    container_name: multicatalogo-cache
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    container_name: multicatalogo-api
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:?falta JWT_SECRET}
+      # Mismo origen detrás del proxy: CORS deja de ser necesario,
+      # pero se deja configurado por si se accede desde otro dominio.
+      CORS_ORIGINS: ${PUBLIC_URL:?falta PUBLIC_URL}
+      APP_ENV: production
+      PORT: 3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  saas:
+    build: ./saas
+    container_name: multicatalogo-saas
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      # El mismo secreto que el backend: un token emitido por Go vale aquí.
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${PUBLIC_URL}
+      APP_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      args:
+        # Vacío a propósito: el frontend llama a /api/... en su mismo origen.
+        VITE_API_URL: ""
+    container_name: multicatalogo-web
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - saas
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: multicatalogo-tunnel
+    restart: unless-stopped
+    # Token del túnel creado en el panel de Cloudflare (Zero Trust > Networks > Tunnels).
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN:?falta TUNNEL_TOKEN}
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:
+  redis_data:
