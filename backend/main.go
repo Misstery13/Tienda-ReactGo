@@ -62,6 +62,7 @@ func main() {
 		Red:       controllers.NuevoRedController(conCache),
 		Checkout:  controllers.NuevoCheckoutController(conCache, cache),
 		Usuarios:  controllers.NuevoUsuarioController(conCache, secretoJWT),
+		Pedidos:   controllers.NuevoPedidoController(conCache),
 	}
 
 	// Instanciamos una nueva aplicación de Fiber y la guardamos en la variable 'app'.

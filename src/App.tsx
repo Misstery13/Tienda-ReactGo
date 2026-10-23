@@ -8,6 +8,8 @@ import Storefront from './components/Storefront';
 import DetalleProducto from './components/DetalleProducto';
 import MiRed from './components/MiRed';
 import AdminProductos from './components/AdminProductos';
+import AdminPedidos from './components/AdminPedidos';
+import MisPedidos from './components/MisPedidos';
 import Carrito from './components/Carrito';
 import Checkout from './components/Checkout';
 import Confirmacion from './components/Confirmacion';
@@ -75,6 +77,7 @@ function App() {
                   <Route index element={<Dashboard />} />
                   <Route path="mi-red" element={<MiRed />} />
                   <Route path="admin/productos" element={<AdminProductos />} />
+                  <Route path="admin/pedidos" element={<AdminPedidos />} />
                 </Route>
 
                 {/* Ambos roles: flujo de compra en línea */}
@@ -84,6 +87,7 @@ function App() {
                 <Route path="carrito" element={<Carrito />} />
                 <Route path="checkout" element={<Checkout />} />
                 <Route path="confirmacion" element={<Confirmacion />} />
+                <Route path="mis-pedidos" element={<MisPedidos />} />
               </Route>
             </Route>
 

@@ -25,6 +25,10 @@ type DBRepository interface {
 	DesactivarProducto(ctx context.Context, id int) error
 	ListarProductosAdmin(ctx context.Context, q string, pagina, limite int) (models.Pagina[models.Producto], error)
 	CrearPedido(ctx context.Context, req models.CheckoutRequest) (models.Pedido, error)
+	ListarPedidosDeUsuario(ctx context.Context, usuarioID, pagina, limite int) (models.Pagina[models.ResumenPedido], error)
+	ListarPedidos(ctx context.Context, estado string, pagina, limite int) (models.Pagina[models.ResumenPedido], error)
+	ObtenerPedido(ctx context.Context, id, usuarioID int) (models.Pedido, error)
+	CambiarEstadoPedido(ctx context.Context, id int, nuevo string) (models.Pedido, error)
 	AcreditarComisiones(ctx context.Context, email string, total float64) error
 }
 

@@ -93,10 +93,10 @@ const Confirmacion = () => {
               Seguir Comprando
             </Link>
             <Link
-              to="/catalogo"
+              to="/mis-pedidos"
               className="flex-1 text-center border border-slate-300 text-slate-700 font-semibold py-3 rounded-lg hover:bg-slate-50 transition"
             >
-              Ver Catálogo
+              Ver Mis Pedidos
             </Link>
           </div>
         </div>

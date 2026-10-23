@@ -3,6 +3,7 @@
 package middleware
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -69,4 +70,20 @@ func RequireAdmin() fiber.Handler {
 func EmailDeSesion(c *fiber.Ctx) string {
 	email, _ := c.Locals(ClaveEmail).(string)
 	return email
+}
+
+// UsuarioIDDeSesion devuelve el id del usuario del token (0 si no hay sesión).
+func UsuarioIDDeSesion(c *fiber.Ctx) int {
+	texto, _ := c.Locals(ClaveUsuarioID).(string)
+	id, err := strconv.Atoi(texto)
+	if err != nil {
+		return 0
+	}
+	return id
+}
+
+// RolDeSesion devuelve el rol firmado en el token.
+func RolDeSesion(c *fiber.Ctx) string {
+	rol, _ := c.Locals(ClaveRol).(string)
+	return rol
 }

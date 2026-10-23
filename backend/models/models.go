@@ -167,4 +167,22 @@ type Pedido struct {
 	Items   []LineaPedido `json:"items"`
 	Total   float64       `json:"total"`
 	Fecha   string        `json:"fecha"`
+	Estado  string        `json:"estado,omitempty"`
+}
+
+// ResumenPedido es cada fila de los listados de pedidos (sin el detalle).
+type ResumenPedido struct {
+	ID        int     `json:"id"`
+	Numero    string  `json:"numero"`
+	Cliente   string  `json:"cliente"`
+	Email     string  `json:"email"`
+	Total     float64 `json:"total"`
+	Estado    string  `json:"estado"`
+	Fecha     string  `json:"fecha"`
+	Articulos int     `json:"articulos"`
+}
+
+// CambiarEstadoRequest es el cuerpo de PATCH /api/pedidos/:id/estado.
+type CambiarEstadoRequest struct {
+	Estado string `json:"estado"`
 }

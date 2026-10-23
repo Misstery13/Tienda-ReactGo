@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { House, LayoutGrid, Package, Store, Users, type LucideIcon } from "lucide-react";
+import { ClipboardList, House, LayoutGrid, Package, Receipt, Store, Users, type LucideIcon } from "lucide-react";
 import { useAuth } from "../context/auth";
 
 interface SidebarProps {
@@ -19,8 +19,10 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/", label: "Dashboard", icon: House, soloAdmin: true },
   { to: "/tienda", label: "Tienda", icon: Store },
   { to: "/catalogo", label: "Catálogo", icon: LayoutGrid },
+  { to: "/mis-pedidos", label: "Mis Pedidos", icon: Receipt },
   { to: "/mi-red", label: "Mi Red", icon: Users, soloAdmin: true },
   { to: "/admin/productos", label: "Productos", icon: Package, soloAdmin: true },
+  { to: "/admin/pedidos", label: "Pedidos", icon: ClipboardList, soloAdmin: true },
 ];
 
 const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
