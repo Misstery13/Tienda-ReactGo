@@ -21,11 +21,39 @@ type LoginResponse struct {
 
 // Usuario representa una cuenta del sistema. Password no se serializa a JSON ("-").
 type Usuario struct {
-	ID       int    `json:"id"`
-	Email    string `json:"email"`
-	Password string `json:"-"`
-	Rol      string `json:"rol"`
-	Token    string `json:"-"`
+	ID         int    `json:"id"`
+	Email      string `json:"email"`
+	Password   string `json:"-"`
+	Rol        string `json:"rol"`
+	Token      string `json:"-"`
+	Nombre     string `json:"nombre"`
+	Activo     bool   `json:"activo"`
+	ReferidoID *int   `json:"referido_id,omitempty"`
+	CreadoEn   string `json:"creado_en,omitempty"`
+}
+
+// RegistroRequest es el cuerpo de POST /api/register.
+// CodigoReferido es opcional: si viene, el nuevo usuario cuelga de ese nodo.
+type RegistroRequest struct {
+	Nombre         string `json:"nombre"`
+	Email          string `json:"email"`
+	Password       string `json:"password"`
+	CodigoReferido string `json:"codigo_referido"`
+}
+
+// ActualizarUsuarioRequest permite al administrador cambiar rol y estado.
+// Son punteros para distinguir "no enviado" de "enviado en falso".
+type ActualizarUsuarioRequest struct {
+	Rol    *string `json:"rol"`
+	Activo *bool   `json:"activo"`
+}
+
+// Pagina envuelve cualquier listado paginado.
+type Pagina[T any] struct {
+	Datos  []T `json:"datos"`
+	Total  int `json:"total"`
+	Pagina int `json:"pagina"`
+	Limite int `json:"limite"`
 }
 
 // Producto define la estructura de los datos de un artículo en nuestro catálogo.

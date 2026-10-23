@@ -34,12 +34,12 @@ func NuevoPostgresRepository(db *pgxpool.Pool) *PostgresRepository {
 // contraseña en claro ni decide si es correcta.
 func (r *PostgresRepository) BuscarUsuarioPorEmail(ctx context.Context, email string) (models.Usuario, error) {
 	const consulta = `
-		SELECT id, email, password, rol
+		SELECT id, email, password, rol, nombre, activo
 		FROM usuarios
 		WHERE LOWER(email) = LOWER($1)`
 
 	var u models.Usuario
-	err := r.db.QueryRow(ctx, consulta, email).Scan(&u.ID, &u.Email, &u.Password, &u.Rol)
+	err := r.db.QueryRow(ctx, consulta, email).Scan(&u.ID, &u.Email, &u.Password, &u.Rol, &u.Nombre, &u.Activo)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return models.Usuario{}, ErrNoEncontrado
 	}

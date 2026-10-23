@@ -17,6 +17,7 @@ type Controladores struct {
 	Productos *controllers.ProductoController
 	Red       *controllers.RedController
 	Checkout  *controllers.CheckoutController
+	Usuarios  *controllers.UsuarioController
 }
 
 // SetupRoutes recibe la aplicación Fiber, los controladores y el secreto de firma.
@@ -29,6 +30,9 @@ func SetupRoutes(app *fiber.App, c Controladores, secretoJWT string) {
 
 	// Definimos una ruta HTTP POST en "/api/login" y la enlazamos a la función Login del paquete controllers.
 	app.Post("/api/login", c.Auth.Login)
+
+	// Registro público de clientes (acepta ?ref=CODIGO de invitación).
+	app.Post("/api/register", c.Usuarios.Registrar)
 
 	// Definimos una ruta HTTP GET en "/api/productos" y la enlazamos a la función GetProductos del paquete controllers.
 	app.Get("/api/productos", c.Productos.GetProductos)
@@ -43,4 +47,8 @@ func SetupRoutes(app *fiber.App, c Controladores, secretoJWT string) {
 
 	// Procesamiento transaccional de la compra: cualquier usuario autenticado.
 	app.Post("/api/checkout", requiereSesion, c.Checkout.Checkout)
+
+	// Administración de cuentas: solo administradores.
+	app.Get("/api/usuarios", requiereSesion, middleware.RequireAdmin(), c.Usuarios.Listar)
+	app.Patch("/api/usuarios/:id", requiereSesion, middleware.RequireAdmin(), c.Usuarios.Actualizar)
 }

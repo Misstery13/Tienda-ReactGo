@@ -13,6 +13,9 @@ import (
 // DBRepository es todo lo que la aplicación necesita de un almacén de datos.
 type DBRepository interface {
 	BuscarUsuarioPorEmail(ctx context.Context, email string) (models.Usuario, error)
+	CrearUsuario(ctx context.Context, datos models.RegistroRequest, hash string) (models.Usuario, error)
+	ListarUsuarios(ctx context.Context, pagina, limite int) (models.Pagina[models.Usuario], error)
+	ActualizarUsuario(ctx context.Context, id int, datos models.ActualizarUsuarioRequest) (models.Usuario, error)
 	Ping(ctx context.Context) error
 	ObtenerProductos(ctx context.Context) ([]models.Producto, error)
 	ObtenerProductoPorID(ctx context.Context, id int) (models.Producto, error)

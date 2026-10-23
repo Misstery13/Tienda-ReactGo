@@ -91,6 +91,15 @@ func (ac *AuthController) Login(c *fiber.Ctx) error {
 		))
 	}
 
+	// Una cuenta desactivada no puede iniciar sesión aunque la contraseña sea correcta.
+	if !usuario.Activo {
+		return c.Status(fiber.StatusForbidden).JSON(models.NuevoAPIError(
+			fiber.StatusForbidden,
+			"La cuenta está desactivada; contacta al administrador",
+			nil,
+		))
+	}
+
 	// Token firmado: a diferencia del anterior, no se puede inventar a mano.
 	token, err := auth.GenerarToken(usuario, ac.secreto)
 	if err != nil {
