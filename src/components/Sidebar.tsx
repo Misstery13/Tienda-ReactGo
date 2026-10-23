@@ -20,7 +20,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/tienda", label: "Tienda", icon: Store },
   { to: "/catalogo", label: "Catálogo", icon: LayoutGrid },
   { to: "/mis-pedidos", label: "Mis Pedidos", icon: Receipt },
-  { to: "/mi-red", label: "Mi Red", icon: Users, soloAdmin: true },
+  { to: "/mi-red", label: "Mi Red", icon: Users },
   { to: "/admin/productos", label: "Productos", icon: Package, soloAdmin: true },
   { to: "/admin/pedidos", label: "Pedidos", icon: ClipboardList, soloAdmin: true },
 ];

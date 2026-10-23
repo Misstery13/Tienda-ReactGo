@@ -75,7 +75,6 @@ function App() {
                 {/* Solo administrador: Dashboard y Red multinivel */}
                 <Route element={<AdminRoute />}>
                   <Route index element={<Dashboard />} />
-                  <Route path="mi-red" element={<MiRed />} />
                   <Route path="admin/productos" element={<AdminProductos />} />
                   <Route path="admin/pedidos" element={<AdminPedidos />} />
                 </Route>
@@ -88,6 +87,7 @@ function App() {
                 <Route path="checkout" element={<Checkout />} />
                 <Route path="confirmacion" element={<Confirmacion />} />
                 <Route path="mis-pedidos" element={<MisPedidos />} />
+                <Route path="mi-red" element={<MiRed />} />
               </Route>
             </Route>
 

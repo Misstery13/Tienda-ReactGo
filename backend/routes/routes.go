@@ -23,8 +23,9 @@ type Controladores struct {
 
 // SetupRoutes recibe la aplicación Fiber, los controladores y el secreto de firma.
 func SetupRoutes(app *fiber.App, c Controladores, secretoJWT string) {
-	// Middleware reutilizable para las rutas que exigen sesión iniciada.
+	// Middlewares reutilizables para las rutas privadas.
 	requiereSesion := middleware.RequireAuth(secretoJWT)
+	soloAdmin := middleware.RequireAdmin()
 
 	// Estado del servicio.
 	app.Get("/api/health", c.Health.HealthCheck)
@@ -43,14 +44,17 @@ func SetupRoutes(app *fiber.App, c Controladores, secretoJWT string) {
 
 	// ===== Rutas protegidas: exigen un JWT válido =====
 
-	// El árbol multinivel es información de negocio: solo administradores.
-	app.Get("/api/red", requiereSesion, middleware.RequireAdmin(), c.Red.GetRed)
+	// El árbol global es información de negocio: solo administradores.
+	app.Get("/api/red", requiereSesion, soloAdmin, c.Red.GetRed)
+
+	// Cada usuario ve su propia red y su propio ledger de comisiones.
+	app.Get("/api/red/mia", requiereSesion, c.Red.MiRed)
+	app.Get("/api/comisiones/mias", requiereSesion, c.Red.MisComisiones)
 
 	// Procesamiento transaccional de la compra: cualquier usuario autenticado.
 	app.Post("/api/checkout", requiereSesion, c.Checkout.Checkout)
 
 	// Administración del catálogo: solo administradores.
-	soloAdmin := middleware.RequireAdmin()
 	app.Get("/api/admin/productos", requiereSesion, soloAdmin, c.Productos.ListarAdmin)
 	app.Post("/api/productos", requiereSesion, soloAdmin, c.Productos.Crear)
 	app.Put("/api/productos/:id", requiereSesion, soloAdmin, c.Productos.Actualizar)

@@ -168,14 +168,46 @@ func (r *PostgresRepository) CambiarEstadoPedido(ctx context.Context, id int, nu
 		return models.Pedido{}, fmt.Errorf("actualizando el estado: %w", err)
 	}
 
-	// Al cancelar, cada artículo vuelve al stock dentro de la misma transacción.
+	// Cancelar es la operación espejo del checkout: deshace todo lo que
+	// aquella transacción hizo, dentro de una transacción propia.
 	if nuevo == domain.EstadoCancelado {
+		// 1. Cada artículo vuelve al stock.
 		if _, err := tx.Exec(ctx, `
 			UPDATE productos pr
 			SET stock = pr.stock + pi.cantidad
 			FROM pedido_items pi
 			WHERE pi.pedido_id = $1 AND pr.id = pi.producto_id`, id); err != nil {
 			return models.Pedido{}, fmt.Errorf("devolviendo el stock: %w", err)
+		}
+
+		// 2. Las comisiones del ledger se marcan revertidas.
+		// No se borran: la auditoría debe poder ver que existieron y se anularon.
+		// Una comisión ya pagada no se revierte: ese dinero salió de caja.
+		if _, err := tx.Exec(ctx, `
+			UPDATE comisiones SET estado = 'revertida'
+			WHERE pedido_id = $1 AND estado <> 'pagada'`, id); err != nil {
+			return models.Pedido{}, fmt.Errorf("revirtiendo las comisiones: %w", err)
+		}
+
+		// 3. La venta se descuenta del contador del comprador.
+		if _, err := tx.Exec(ctx, `
+			UPDATE referidos SET ventas = greatest(ventas - p.total, 0)
+			FROM pedidos p
+			WHERE p.id = $1
+			  AND referidos.id = (SELECT referido_id FROM usuarios WHERE id = p.usuario_id)`,
+			id); err != nil {
+			return models.Pedido{}, fmt.Errorf("descontando la venta: %w", err)
+		}
+
+		// 4. El contador de comisiones se recalcula desde el ledger.
+		if _, err := tx.Exec(ctx, `
+			UPDATE referidos r
+			SET comisiones = (
+				SELECT coalesce(sum(c.monto), 0)
+				FROM comisiones c
+				WHERE c.referido_id = r.id AND c.estado <> 'revertida'
+			)`); err != nil {
+			return models.Pedido{}, fmt.Errorf("refrescando el contador de comisiones: %w", err)
 		}
 	}
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"multicatalogo-backend/domain"
 	"multicatalogo-backend/models"
 )
 
@@ -122,6 +123,12 @@ func (r *PostgresRepository) CrearPedido(ctx context.Context, req models.Checkou
 		return models.Pedido{}, fmt.Errorf("actualizando total: %w", err)
 	}
 
+	// Las comisiones se escriben aquí, no en la goroutine: si el pedido se
+	// revierte, el ledger se revierte con él. Es la misma transacción.
+	if err := registrarComisiones(ctx, tx, pedidoID, req.Email, total); err != nil {
+		return models.Pedido{}, err
+	}
+
 	// COMMIT
 	if err := tx.Commit(ctx); err != nil {
 		return models.Pedido{}, fmt.Errorf("confirmando transacción: %w", err)
@@ -141,17 +148,18 @@ func (r *PostgresRepository) CrearPedido(ctx context.Context, req models.Checkou
 	}, nil
 }
 
-// AcreditarComisiones reparte el total de una compra hacia arriba en el árbol.
-// Se ejecuta en una goroutine: el cliente ya recibió su confirmación.
-func (r *PostgresRepository) AcreditarComisiones(ctx context.Context, email string, total float64) error {
-	// Nodo del comprador dentro de la red.
+// registrarComisiones inserta el reparto en el ledger dentro de la transacción.
+// Sube por el árbol desde el nodo del comprador, una tasa por cada ancestro.
+func registrarComisiones(ctx context.Context, tx pgx.Tx, pedidoID int, email string, total float64) error {
+	// Nodo del comprador: la FK usuarios.referido_id, no una coincidencia de ids.
 	var nodoID int
 	var padreID *int
-	err := r.db.QueryRow(ctx, `
+	err := tx.QueryRow(ctx, `
 		SELECT re.id, re.parent_id
-		FROM referidos re
-		JOIN usuarios u ON u.id = re.usuario_id
+		FROM usuarios u
+		JOIN referidos re ON re.id = u.referido_id
 		WHERE LOWER(u.email) = LOWER($1)`, email).Scan(&nodoID, &padreID)
+
 	if errors.Is(err, pgx.ErrNoRows) {
 		// Quien compra sin pertenecer a la red no genera comisiones.
 		return nil
@@ -160,27 +168,52 @@ func (r *PostgresRepository) AcreditarComisiones(ctx context.Context, email stri
 		return fmt.Errorf("buscando al comprador en la red: %w", err)
 	}
 
-	// La venta se suma al propio comprador: así sube "Ventas de la Red".
-	if _, err := r.db.Exec(ctx,
-		"UPDATE referidos SET ventas = ventas + $1 WHERE id = $2", total, nodoID); err != nil {
-		return fmt.Errorf("registrando la venta: %w", err)
-	}
-
-	// Se recorre hacia arriba hasta tres ancestros, uno por cada tasa.
+	reparto := domain.RepartirComisiones(total, domain.TasasPorNivel)
 	actual := padreID
-	for nivel := 0; nivel < len(TASAS) && actual != nil; nivel++ {
-		comision := total * TASAS[nivel]
+
+	for _, comision := range reparto {
+		if actual == nil {
+			// Se acabó la cadena de ancestros antes que las tasas.
+			break
+		}
 
 		var siguiente *int
-		err := r.db.QueryRow(ctx, `
-			UPDATE referidos SET comisiones = comisiones + $1
-			WHERE id = $2
-			RETURNING parent_id`, comision, *actual).Scan(&siguiente)
-		if err != nil {
-			return fmt.Errorf("acreditando comisión al nodo %d: %w", *actual, err)
+		if err := tx.QueryRow(ctx, `
+			INSERT INTO comisiones (pedido_id, referido_id, nivel, porcentaje, monto)
+			VALUES ($1, $2, $3, $4, $5)
+			RETURNING (SELECT parent_id FROM referidos WHERE id = $2)`,
+			pedidoID, *actual, comision.Nivel, comision.Porcentaje, comision.Monto).
+			Scan(&siguiente); err != nil {
+			return fmt.Errorf("registrando comisión de nivel %d: %w", comision.Nivel, err)
 		}
 
 		actual = siguiente
+	}
+
+	return nil
+}
+
+// AcreditarComisiones actualiza los contadores de lectura rápida tras el COMMIT.
+// El dinero ya quedó escrito en el ledger; aquí solo se refrescan los acumulados
+// que alimentan el Dashboard.
+func (r *PostgresRepository) AcreditarComisiones(ctx context.Context, email string, total float64) error {
+	// La venta se suma al propio comprador: así sube "Ventas de la Red".
+	if _, err := r.db.Exec(ctx, `
+		UPDATE referidos SET ventas = ventas + $2
+		WHERE id = (SELECT referido_id FROM usuarios WHERE LOWER(email) = LOWER($1))`,
+		email, total); err != nil {
+		return fmt.Errorf("registrando la venta: %w", err)
+	}
+
+	// El contador de comisiones se recalcula desde el ledger, que es la verdad.
+	if _, err := r.db.Exec(ctx, `
+		UPDATE referidos r
+		SET comisiones = (
+			SELECT coalesce(sum(c.monto), 0)
+			FROM comisiones c
+			WHERE c.referido_id = r.id AND c.estado <> 'revertida'
+		)`); err != nil {
+		return fmt.Errorf("refrescando el contador de comisiones: %w", err)
 	}
 
 	return nil

@@ -20,6 +20,8 @@ type DBRepository interface {
 	ObtenerProductos(ctx context.Context) ([]models.Producto, error)
 	ObtenerProductoPorID(ctx context.Context, id int) (models.Producto, error)
 	ObtenerRed(ctx context.Context) (*models.Referido, error)
+	ObtenerRedDeUsuario(ctx context.Context, usuarioID int) (*models.Referido, error)
+	ListarComisionesDeUsuario(ctx context.Context, usuarioID int) (models.ResumenComisiones, error)
 	CrearProducto(ctx context.Context, datos models.ProductoRequest) (models.Producto, error)
 	ActualizarProducto(ctx context.Context, id int, datos models.ProductoRequest) (models.Producto, error)
 	DesactivarProducto(ctx context.Context, id int) error

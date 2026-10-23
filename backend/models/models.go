@@ -94,11 +94,32 @@ type ProductoRequest struct {
 // Referido es un nodo del árbol multinivel. Hijos contiene los referidos del
 // siguiente nivel, lo que permite enviar la jerarquía completa en un solo JSON.
 type Referido struct {
-	ID     int         `json:"id"`
-	Nombre string      `json:"nombre"`
-	Nivel  int         `json:"nivel"`
-	Ventas float64     `json:"ventas"`
-	Hijos  []*Referido `json:"hijos,omitempty"`
+	ID         int         `json:"id"`
+	Nombre     string      `json:"nombre"`
+	Nivel      int         `json:"nivel"`
+	Ventas     float64     `json:"ventas"`
+	Codigo     string      `json:"codigo,omitempty"`
+	Comisiones float64     `json:"comisiones,omitempty"`
+	Hijos      []*Referido `json:"hijos,omitempty"`
+}
+
+// LineaComision es una fila del ledger tal como la ve el distribuidor.
+type LineaComision struct {
+	ID         int     `json:"id"`
+	Pedido     string  `json:"pedido"`
+	Nivel      int     `json:"nivel"`
+	Porcentaje float64 `json:"porcentaje"`
+	Monto      float64 `json:"monto"`
+	Estado     string  `json:"estado"`
+	Fecha      string  `json:"fecha"`
+}
+
+// ResumenComisiones agrupa el ledger con sus totales por estado.
+type ResumenComisiones struct {
+	Lineas    []LineaComision `json:"lineas"`
+	Pendiente float64         `json:"pendiente"`
+	Pagada    float64         `json:"pagada"`
+	Revertida float64         `json:"revertida"`
 }
 
 // APIError estandariza el formato de los errores HTTP que devuelve la API.

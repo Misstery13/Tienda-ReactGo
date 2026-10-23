@@ -47,3 +47,45 @@ func (rc *RedController) GetRed(c *fiber.Ctx) error {
 
 	return c.JSON(red)
 }
+
+// MiRed devuelve el subárbol del usuario del token, no el árbol global.
+// Cada distribuidor ve solo la red que cuelga de él.
+func (rc *RedController) MiRed(c *fiber.Ctx) error {
+	usuarioID := middleware.UsuarioIDDeSesion(c)
+
+	red, err := rc.repo.ObtenerRedDeUsuario(c.Context(), usuarioID)
+	if errors.Is(err, repository.ErrNoEncontrado) {
+		return c.Status(fiber.StatusNotFound).JSON(models.NuevoAPIError(
+			fiber.StatusNotFound,
+			"Tu cuenta todavía no tiene un nodo en la red",
+			nil,
+		))
+	}
+	if err != nil {
+		log.Printf("error construyendo la red del usuario: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.NuevoAPIError(
+			fiber.StatusInternalServerError,
+			"Error al consultar tu red",
+			nil,
+		))
+	}
+
+	return c.JSON(red)
+}
+
+// MisComisiones devuelve el ledger del usuario con sus totales por estado.
+func (rc *RedController) MisComisiones(c *fiber.Ctx) error {
+	usuarioID := middleware.UsuarioIDDeSesion(c)
+
+	resumen, err := rc.repo.ListarComisionesDeUsuario(c.Context(), usuarioID)
+	if err != nil {
+		log.Printf("error consultando comisiones: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.NuevoAPIError(
+			fiber.StatusInternalServerError,
+			"Error al consultar tus comisiones",
+			nil,
+		))
+	}
+
+	return c.JSON(resumen)
+}

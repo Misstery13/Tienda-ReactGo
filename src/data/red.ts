@@ -6,9 +6,11 @@
 export interface Referido {
   id: number;
   nombre: string;
-  nivel: number;      // 1 = directo, 2 = indirecto, 3 = tercer nivel
-  ventas: number;     // ventas mensuales en dólares
-  hijos?: Referido[]; // referidos de un nivel más abajo
+  nivel: number;       // relativo a la raíz del árbol recibido
+  ventas: number;      // ventas acumuladas del nodo
+  codigo?: string;     // código de invitación
+  comisiones?: number; // acumulado del ledger
+  hijos?: Referido[];  // referidos de un nivel más abajo
 }
 
 // Porcentaje de comisión que recibe el usuario por las ventas de cada nivel
