@@ -16,6 +16,13 @@ type DBRepository interface {
 	CrearUsuario(ctx context.Context, datos models.RegistroRequest, hash string) (models.Usuario, error)
 	ListarUsuarios(ctx context.Context, pagina, limite int) (models.Pagina[models.Usuario], error)
 	ActualizarUsuario(ctx context.Context, id int, datos models.ActualizarUsuarioRequest) (models.Usuario, error)
+	DeudaPorDistribuidor(ctx context.Context) ([]models.DeudaDistribuidor, error)
+	Liquidar(ctx context.Context, referidoID int) (models.Liquidacion, error)
+	ListarLiquidaciones(ctx context.Context, referidoID int) ([]models.Liquidacion, error)
+	ReferidoDeUsuario(ctx context.Context, usuarioID int) (int, error)
+	ResumenDeVentas(ctx context.Context, desde, hasta string) (models.ResumenVentas, error)
+	TopProductos(ctx context.Context, limite int) ([]models.FilaReporte, error)
+	TopReferidos(ctx context.Context, limite int) ([]models.FilaReporte, error)
 	Ping(ctx context.Context) error
 	ObtenerProductos(ctx context.Context) ([]models.Producto, error)
 	ObtenerProductoPorID(ctx context.Context, id int) (models.Producto, error)

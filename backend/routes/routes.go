@@ -19,6 +19,7 @@ type Controladores struct {
 	Checkout  *controllers.CheckoutController
 	Usuarios  *controllers.UsuarioController
 	Pedidos   *controllers.PedidoController
+	Admin     *controllers.AdminController
 }
 
 // SetupRoutes recibe la aplicación Fiber, los controladores y el secreto de firma.
@@ -65,6 +66,17 @@ func SetupRoutes(app *fiber.App, c Controladores, secretoJWT string) {
 	app.Get("/api/pedidos", requiereSesion, soloAdmin, c.Pedidos.Listar)
 	app.Get("/api/pedidos/:id", requiereSesion, c.Pedidos.Detalle)
 	app.Patch("/api/pedidos/:id/estado", requiereSesion, soloAdmin, c.Pedidos.CambiarEstado)
+
+	// Liquidaciones a distribuidores.
+	app.Get("/api/liquidaciones/mias", requiereSesion, c.Admin.MisLiquidaciones)
+	app.Get("/api/liquidaciones", requiereSesion, soloAdmin, c.Admin.Liquidaciones)
+	app.Post("/api/liquidaciones", requiereSesion, soloAdmin, c.Admin.Liquidar)
+	app.Get("/api/comisiones/deuda", requiereSesion, soloAdmin, c.Admin.Deuda)
+
+	// Reportes de negocio: solo administradores.
+	app.Get("/api/reportes/resumen", requiereSesion, soloAdmin, c.Admin.Resumen)
+	app.Get("/api/reportes/top-productos", requiereSesion, soloAdmin, c.Admin.TopProductos)
+	app.Get("/api/reportes/top-referidos", requiereSesion, soloAdmin, c.Admin.TopReferidos)
 
 	// Administración de cuentas: solo administradores.
 	app.Get("/api/usuarios", requiereSesion, middleware.RequireAdmin(), c.Usuarios.Listar)

@@ -207,3 +207,49 @@ type ResumenPedido struct {
 type CambiarEstadoRequest struct {
 	Estado string `json:"estado"`
 }
+
+// ============ FASE 5: LIQUIDACIONES ============
+
+// DeudaDistribuidor es lo que se le debe a cada referido según el ledger.
+type DeudaDistribuidor struct {
+	ReferidoID int     `json:"referido_id"`
+	Nombre     string  `json:"nombre"`
+	Codigo     string  `json:"codigo"`
+	Pendiente  float64 `json:"pendiente"`
+	Lineas     int     `json:"lineas"`
+}
+
+// Liquidacion es un pago hecho a un distribuidor.
+type Liquidacion struct {
+	ID         int     `json:"id"`
+	ReferidoID int     `json:"referido_id"`
+	Nombre     string  `json:"nombre"`
+	Total      float64 `json:"total"`
+	Estado     string  `json:"estado"`
+	Comisiones int     `json:"comisiones"`
+	Fecha      string  `json:"fecha"`
+}
+
+// LiquidarRequest es el cuerpo de POST /api/liquidaciones.
+type LiquidarRequest struct {
+	ReferidoID int `json:"referido_id"`
+}
+
+// ============ FASE 6: REPORTES ============
+
+// ResumenVentas son los KPIs del negocio en un periodo.
+type ResumenVentas struct {
+	TotalVendido         float64 `json:"total_vendido"`
+	Pedidos              int     `json:"pedidos"`
+	TicketPromedio       float64 `json:"ticket_promedio"`
+	ComisionesDevengadas float64 `json:"comisiones_devengadas"`
+	Cancelados           int     `json:"cancelados"`
+}
+
+// FilaReporte es cada línea de los rankings.
+type FilaReporte struct {
+	ID       int     `json:"id"`
+	Nombre   string  `json:"nombre"`
+	Cantidad int     `json:"cantidad"`
+	Total    float64 `json:"total"`
+}

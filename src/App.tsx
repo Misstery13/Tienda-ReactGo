@@ -9,6 +9,7 @@ import DetalleProducto from './components/DetalleProducto';
 import MiRed from './components/MiRed';
 import AdminProductos from './components/AdminProductos';
 import AdminPedidos from './components/AdminPedidos';
+import AdminLiquidaciones from './components/AdminLiquidaciones';
 import MisPedidos from './components/MisPedidos';
 import Carrito from './components/Carrito';
 import Checkout from './components/Checkout';
@@ -77,6 +78,7 @@ function App() {
                   <Route index element={<Dashboard />} />
                   <Route path="admin/productos" element={<AdminProductos />} />
                   <Route path="admin/pedidos" element={<AdminPedidos />} />
+                  <Route path="admin/liquidaciones" element={<AdminLiquidaciones />} />
                 </Route>
 
                 {/* Ambos roles: flujo de compra en línea */}

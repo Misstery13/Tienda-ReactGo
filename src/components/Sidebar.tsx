@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { ClipboardList, House, LayoutGrid, Package, Receipt, Store, Users, type LucideIcon } from "lucide-react";
+import { ClipboardList, House, LayoutGrid, Package, Receipt, Store, Users, Wallet, type LucideIcon } from "lucide-react";
 import { useAuth } from "../context/auth";
 
 interface SidebarProps {
@@ -23,6 +23,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/mi-red", label: "Mi Red", icon: Users },
   { to: "/admin/productos", label: "Productos", icon: Package, soloAdmin: true },
   { to: "/admin/pedidos", label: "Pedidos", icon: ClipboardList, soloAdmin: true },
+  { to: "/admin/liquidaciones", label: "Liquidaciones", icon: Wallet, soloAdmin: true },
 ];
 
 const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {

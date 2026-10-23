@@ -1,35 +1,50 @@
 // src/components/Dashboard.tsx
-// Resumen general con KPIs calculados desde el estado real (Tema 5):
-// - Funciones puras de data/red.ts en lugar de valores estáticos
+// Dashboard del negocio: KPIs y rankings calculados por el servidor
+// con SQL de agregación, no derivados de datos semilla.
 import { useEffect, useState } from 'react';
 import {
-  contarRed,
-  sumarVentasRed,
-  sumarComisiones,
-  nivelAlcanzado,
-  comisionDeReferido,
-  type Referido,
-} from '../data/red';
-import { getRed } from '../services/redService';
+  getResumen,
+  getTopProductos,
+  getTopReferidos,
+  type FilaReporte,
+  type ResumenVentas,
+} from '../services/reportesService';
 
 const Dashboard = () => {
-  const [red, setRed] = useState<Referido | null>(null);
+  const [resumen, setResumen] = useState<ResumenVentas | null>(null);
+  const [productos, setProductos] = useState<FilaReporte[]>([]);
+  const [referidos, setReferidos] = useState<FilaReporte[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
 
-  // Los KPIs salen del mismo árbol que sirve la API.
   useEffect(() => {
-    getRed()
-      .then((data) => setRed(data))
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
+    let vivo = true;
+
+    Promise.all([getResumen(), getTopProductos(5), getTopReferidos(5)])
+      .then(([r, p, d]) => {
+        if (!vivo) return;
+        setResumen(r);
+        setProductos(p);
+        setReferidos(d);
+        setError('');
+      })
+      .catch((err: Error) => {
+        if (vivo) setError(err.message);
+      })
+      .finally(() => {
+        if (vivo) setLoading(false);
+      });
+
+    return () => {
+      vivo = false;
+    };
   }, []);
 
   if (loading) {
     return <p className="text-slate-500">Cargando resumen...</p>;
   }
 
-  if (error || !red) {
+  if (error || !resumen) {
     return (
       <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-200">
         {error || 'No se pudo cargar el resumen'}
@@ -37,29 +52,21 @@ const Dashboard = () => {
     );
   }
 
-  const referidosDirectos = red.hijos?.length ?? 0;
-  const referidosActivos = contarRed(red);
-  const ventasRed = sumarVentasRed(red);
-  const comisionesMes = sumarComisiones(red);
-  const nivel = nivelAlcanzado(referidosDirectos);
-
   const kpis = [
-    { etiqueta: "Ventas de la Red", valor: `$${ventasRed.toLocaleString()}`, color: "text-indigo-600" },
-    { etiqueta: "Referidos Activos", valor: referidosActivos.toString(), color: "text-indigo-600" },
-    { etiqueta: "Comisiones del Mes", valor: `$${comisionesMes.toFixed(2)}`, color: "text-green-600" },
-    { etiqueta: "Nivel Actual", valor: nivel, color: "text-amber-600" },
+    { etiqueta: 'Total Vendido', valor: `$${resumen.total_vendido.toFixed(2)}`, color: 'text-indigo-600' },
+    { etiqueta: 'Pedidos', valor: resumen.pedidos.toString(), color: 'text-indigo-600' },
+    { etiqueta: 'Ticket Promedio', valor: `$${resumen.ticket_promedio.toFixed(2)}`, color: 'text-teal-600' },
+    { etiqueta: 'Comisiones Devengadas', valor: `$${resumen.comisiones_devengadas.toFixed(2)}`, color: 'text-green-600' },
   ];
-
-  // Top 3 referidos por ventas (sin recursión: solo nivel 1)
-  const topReferidos = [...(red.hijos ?? [])]
-    .sort((a, b) => b.ventas - a.ventas)
-    .slice(0, 3);
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-800 mb-6">Resumen General</h1>
+      <h1 className="text-2xl font-bold text-slate-800 mb-2">Resumen General</h1>
+      <p className="text-slate-500 mb-6">
+        Datos reales del negocio
+        {resumen.cancelados > 0 && ` · ${resumen.cancelados} pedido(s) cancelado(s) excluido(s)`}
+      </p>
 
-      {/* ===== KPIs DERIVADOS DEL ESTADO ===== */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
         {kpis.map((kpi) => (
           <div key={kpi.etiqueta} className="bg-white p-6 rounded-lg shadow-sm border border-slate-100">
@@ -70,57 +77,54 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* ===== TOP REFERIDOS ===== */}
+        {/* ===== TOP PRODUCTOS ===== */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-100">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Top Referidos del Mes</h2>
-          <div className="space-y-3">
-            {topReferidos.map((ref, idx) => (
-              <div
-                key={ref.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-full bg-teal-100 text-teal-700 font-bold flex items-center justify-center">
-                    {idx + 1}
-                  </span>
-                  <div>
-                    <p className="font-semibold text-slate-800">{ref.nombre}</p>
-                    <p className="text-xs text-slate-500">Nivel {ref.nivel}</p>
+          <h2 className="text-lg font-bold text-slate-800 mb-4">Productos más vendidos</h2>
+          {productos.length === 0 ? (
+            <p className="text-slate-500 text-sm">Todavía no hay ventas registradas.</p>
+          ) : (
+            <div className="space-y-3">
+              {productos.map((p, idx) => (
+                <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-teal-100 text-teal-700 font-bold flex items-center justify-center">
+                      {idx + 1}
+                    </span>
+                    <div>
+                      <p className="font-semibold text-slate-800">{p.nombre}</p>
+                      <p className="text-xs text-slate-500">{p.cantidad} unidad(es)</p>
+                    </div>
                   </div>
+                  <p className="font-bold text-slate-800">${p.total.toFixed(2)}</p>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-slate-800">${ref.ventas.toLocaleString()}</p>
-                  <p className="text-xs text-indigo-600 font-semibold">
-                    +${comisionDeReferido(ref).toFixed(2)}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* ===== PROGRESO DE NIVEL ===== */}
+        {/* ===== TOP REFERIDOS ===== */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-100">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Progreso al Siguiente Nivel</h2>
-          <p className="text-slate-500 text-sm mb-4">
-            {referidosDirectos} referidos directos. El nivel se calcula con:
-          </p>
-          <ul className="space-y-2 text-sm text-slate-600 mb-6">
-            <li className="flex justify-between"><span>Bronce</span><span>0 – 1 directos</span></li>
-            <li className="flex justify-between"><span>Plata</span><span>2 – 3 directos</span></li>
-            <li className="flex justify-between"><span>Oro</span><span>4 – 5 directos</span></li>
-            <li className="flex justify-between"><span>Diamante</span><span>6+ directos</span></li>
-          </ul>
-
-          <div className="h-3 rounded-full bg-slate-100 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-teal-500 to-indigo-500 rounded-full transition-all"
-              style={{ width: `${Math.min((referidosDirectos / 6) * 100, 100)}%` }}
-            />
-          </div>
-          <p className="text-center text-sm text-slate-500 mt-2 font-semibold">
-            Nivel actual: {nivel} ({referidosDirectos} / 6 directos para Diamante)
-          </p>
+          <h2 className="text-lg font-bold text-slate-800 mb-4">Distribuidores que más ganan</h2>
+          {referidos.length === 0 ? (
+            <p className="text-slate-500 text-sm">Todavía no se han generado comisiones.</p>
+          ) : (
+            <div className="space-y-3">
+              {referidos.map((d, idx) => (
+                <div key={d.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center">
+                      {idx + 1}
+                    </span>
+                    <div>
+                      <p className="font-semibold text-slate-800">{d.nombre}</p>
+                      <p className="text-xs text-slate-500">{d.cantidad} comisión(es)</p>
+                    </div>
+                  </div>
+                  <p className="font-bold text-green-600">${d.total.toFixed(2)}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
