@@ -5,7 +5,7 @@ capa SaaS en FastAPI y datos en PostgreSQL 16 + Redis.
 
 ## Demo en línea
 
-**https://liability-transformation-acts-emerging.trycloudflare.com**
+**https://pillow-distribute-structured-attitudes.trycloudflare.com**
 
 > La demo corre en un servidor propio detrás de un quick tunnel de Cloudflare
 > (trycloudflare.com). Esa URL es temporal: cambia si se reinicia el túnel.
