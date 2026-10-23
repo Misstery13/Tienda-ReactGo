@@ -58,8 +58,9 @@ func (r *PostgresRepository) Ping(ctx context.Context) error {
 // ObtenerProductos devuelve el catálogo completo ordenado por id.
 func (r *PostgresRepository) ObtenerProductos(ctx context.Context) ([]models.Producto, error) {
 	const consulta = `
-		SELECT id, nombre, descripcion, precio, categoria, img, galeria
+		SELECT id, nombre, descripcion, precio, categoria, img, galeria, stock, activo
 		FROM productos
+		WHERE activo
 		ORDER BY id`
 
 	filas, err := r.db.Query(ctx, consulta)
@@ -87,9 +88,9 @@ func (r *PostgresRepository) ObtenerProductos(ctx context.Context) ([]models.Pro
 // ObtenerProductoPorID busca un producto por su identificador.
 func (r *PostgresRepository) ObtenerProductoPorID(ctx context.Context, id int) (models.Producto, error) {
 	const consulta = `
-		SELECT id, nombre, descripcion, precio, categoria, img, galeria
+		SELECT id, nombre, descripcion, precio, categoria, img, galeria, stock, activo
 		FROM productos
-		WHERE id = $1`
+		WHERE id = $1 AND activo`
 
 	filas, err := r.db.Query(ctx, consulta, id)
 	if err != nil {
@@ -113,7 +114,7 @@ func escanearProducto(filas pgx.Rows) (models.Producto, error) {
 	var p models.Producto
 	var galeria []byte
 
-	if err := filas.Scan(&p.ID, &p.Nombre, &p.Descripcion, &p.Precio, &p.Categoria, &p.Img, &galeria); err != nil {
+	if err := filas.Scan(&p.ID, &p.Nombre, &p.Descripcion, &p.Precio, &p.Categoria, &p.Img, &galeria, &p.Stock, &p.Activo); err != nil {
 		return models.Producto{}, fmt.Errorf("leyendo producto: %w", err)
 	}
 

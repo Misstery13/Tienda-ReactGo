@@ -10,4 +10,6 @@ export interface Producto {
   categoria: string;
   img: string;        // Imagen principal (portada)
   galeria: string[];  // Imágenes adicionales para la galería/lightbox
+  stock?: number;     // Existencias; el checkout las descuenta
+  activo?: boolean;   // Falso oculta el producto del catálogo
 }

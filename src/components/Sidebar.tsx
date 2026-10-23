@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { House, LayoutGrid, Store, Users, type LucideIcon } from "lucide-react";
+import { House, LayoutGrid, Package, Store, Users, type LucideIcon } from "lucide-react";
 import { useAuth } from "../context/auth";
 
 interface SidebarProps {
@@ -20,6 +20,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/tienda", label: "Tienda", icon: Store },
   { to: "/catalogo", label: "Catálogo", icon: LayoutGrid },
   { to: "/mi-red", label: "Mi Red", icon: Users, soloAdmin: true },
+  { to: "/admin/productos", label: "Productos", icon: Package, soloAdmin: true },
 ];
 
 const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {

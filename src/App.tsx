@@ -7,6 +7,7 @@ import Catalogo from './components/Catalogo';
 import Storefront from './components/Storefront';
 import DetalleProducto from './components/DetalleProducto';
 import MiRed from './components/MiRed';
+import AdminProductos from './components/AdminProductos';
 import Carrito from './components/Carrito';
 import Checkout from './components/Checkout';
 import Confirmacion from './components/Confirmacion';
@@ -73,6 +74,7 @@ function App() {
                 <Route element={<AdminRoute />}>
                   <Route index element={<Dashboard />} />
                   <Route path="mi-red" element={<MiRed />} />
+                  <Route path="admin/productos" element={<AdminProductos />} />
                 </Route>
 
                 {/* Ambos roles: flujo de compra en línea */}

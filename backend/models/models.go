@@ -72,6 +72,23 @@ type Producto struct {
 	Categoria string `json:"categoria"`
 	// Galeria son las imágenes adicionales que se muestran en el detalle.
 	Galeria []string `json:"galeria"`
+	// Stock disponible; el checkout lo descuenta.
+	Stock int `json:"stock"`
+	// Activo en falso oculta el producto del catálogo sin borrar la fila.
+	Activo bool `json:"activo"`
+}
+
+// ProductoRequest es el cuerpo para crear o editar un producto.
+// Los punteros permiten editar solo algunos campos (PUT parcial).
+type ProductoRequest struct {
+	Nombre      *string   `json:"nombre"`
+	Descripcion *string   `json:"descripcion"`
+	Precio      *float64  `json:"precio"`
+	Categoria   *string   `json:"categoria"`
+	Img         *string   `json:"img"`
+	Galeria     *[]string `json:"galeria"`
+	Stock       *int      `json:"stock"`
+	Activo      *bool     `json:"activo"`
 }
 
 // Referido es un nodo del árbol multinivel. Hijos contiene los referidos del

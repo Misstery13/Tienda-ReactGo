@@ -48,6 +48,13 @@ func SetupRoutes(app *fiber.App, c Controladores, secretoJWT string) {
 	// Procesamiento transaccional de la compra: cualquier usuario autenticado.
 	app.Post("/api/checkout", requiereSesion, c.Checkout.Checkout)
 
+	// Administración del catálogo: solo administradores.
+	soloAdmin := middleware.RequireAdmin()
+	app.Get("/api/admin/productos", requiereSesion, soloAdmin, c.Productos.ListarAdmin)
+	app.Post("/api/productos", requiereSesion, soloAdmin, c.Productos.Crear)
+	app.Put("/api/productos/:id", requiereSesion, soloAdmin, c.Productos.Actualizar)
+	app.Delete("/api/productos/:id", requiereSesion, soloAdmin, c.Productos.Desactivar)
+
 	// Administración de cuentas: solo administradores.
 	app.Get("/api/usuarios", requiereSesion, middleware.RequireAdmin(), c.Usuarios.Listar)
 	app.Patch("/api/usuarios/:id", requiereSesion, middleware.RequireAdmin(), c.Usuarios.Actualizar)

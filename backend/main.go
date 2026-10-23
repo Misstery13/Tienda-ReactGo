@@ -58,7 +58,7 @@ func main() {
 	controladores := routes.Controladores{
 		Health:    controllers.NuevoHealthController(conCache, cache),
 		Auth:      controllers.NuevoAuthController(conCache, secretoJWT),
-		Productos: controllers.NuevoProductoController(conCache),
+		Productos: controllers.NuevoProductoController(conCache, cache),
 		Red:       controllers.NuevoRedController(conCache),
 		Checkout:  controllers.NuevoCheckoutController(conCache, cache),
 		Usuarios:  controllers.NuevoUsuarioController(conCache, secretoJWT),
