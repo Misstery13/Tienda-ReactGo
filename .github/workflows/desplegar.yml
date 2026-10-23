@@ -1,0 +1,68 @@
+# Despliegue automático en el servidor casero.
+#
+# Corre en un runner self-hosted instalado en el propio servidor.
+# No usa secretos de GitHub: las credenciales viven solo en el archivo
+# .env.deploy del servidor, que nunca se sube al repositorio.
+
+name: Desplegar
+
+on:
+  push:
+    branches: [main]
+  # Permite lanzarlo a mano desde la pestaña Actions.
+  workflow_dispatch:
+
+# Un despliegue a la vez: si llegan dos push seguidos, el segundo espera.
+concurrency:
+  group: despliegue-servidor
+  cancel-in-progress: false
+
+jobs:
+  desplegar:
+    runs-on: self-hosted
+
+    env:
+      # Carpeta donde está el clon con el archivo .env.deploy.
+      # Cambiar si el repositorio se clonó en otra ruta.
+      RUTA_DESPLIEGUE: ${{ vars.RUTA_DESPLIEGUE || '~/Tienda-ReactGo' }}
+
+    steps:
+      - name: Comprobar que el despliegue existe
+        run: |
+          RUTA=$(eval echo "$RUTA_DESPLIEGUE")
+          test -d "$RUTA/.git"        || { echo "No hay un clon en $RUTA"; exit 1; }
+          test -f "$RUTA/.env.deploy" || { echo "Falta $RUTA/.env.deploy"; exit 1; }
+
+      - name: Traer los cambios
+        run: |
+          RUTA=$(eval echo "$RUTA_DESPLIEGUE")
+          cd "$RUTA"
+          git fetch origin main
+          git reset --hard origin/main
+
+      - name: Levantar la pila
+        run: |
+          RUTA=$(eval echo "$RUTA_DESPLIEGUE")
+          cd "$RUTA"
+          docker compose --env-file .env.deploy up -d --build
+
+      - name: Comprobar que responde
+        run: |
+          RUTA=$(eval echo "$RUTA_DESPLIEGUE")
+          cd "$RUTA"
+          # nginx tarda un momento en aceptar conexiones tras reconstruirse.
+          for intento in $(seq 1 10); do
+            if docker compose --env-file .env.deploy exec -T web wget -qO- http://localhost/api/health | grep -q '"status":"ok"'; then
+              echo "La API responde correctamente"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "La API no respondió tras 50 segundos"
+          docker compose --env-file .env.deploy logs --tail 40
+          exit 1
+
+      - name: Limpiar imágenes viejas
+        # Se ejecuta aunque el paso anterior falle, para no llenar el disco.
+        if: always()
+        run: docker image prune -f
