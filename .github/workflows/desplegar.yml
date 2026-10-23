@@ -46,26 +46,14 @@ jobs:
           cd "$RUTA"
           docker compose --env-file .env.deploy up -d --build
 
-      - name: Sincronizar PUBLIC_URL con el quick tunnel
+      - name: Sincronizar la URL del quick tunnel
         # Solo aplica si el servidor usa el override local de trycloudflare.com,
         # cuya URL cambia cada vez que se recrea el contenedor cloudflared.
+        # Actualiza PUBLIC_URL y, si cambió, el enlace del README.
         run: |
           RUTA=$(eval echo "$RUTA_DESPLIEGUE")
           cd "$RUTA"
-          [ -f docker-compose.override.yml ] || exit 0
-          for intento in $(seq 1 30); do
-            URL=$(docker compose --env-file .env.deploy logs cloudflared 2>&1 \
-              | grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' | tail -1)
-            [ -n "$URL" ] && break
-            sleep 2
-          done
-          [ -n "$URL" ] || { echo "No se encontró la URL del túnel"; exit 1; }
-          if ! grep -q "^PUBLIC_URL=$URL$" .env.deploy; then
-            sed -i "s|^PUBLIC_URL=.*|PUBLIC_URL=$URL|" .env.deploy
-            docker compose --env-file .env.deploy up -d backend saas
-            echo "PUBLIC_URL actualizada"
-          fi
-          echo "URL pública: $URL" >> "$GITHUB_STEP_SUMMARY"
+          ./scripts/sincronizar-url.sh
 
       - name: Comprobar que responde
         run: |

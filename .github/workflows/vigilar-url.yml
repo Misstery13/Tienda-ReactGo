@@ -1,0 +1,33 @@
+# Revisa cada 15 minutos si cambió la URL del quick tunnel.
+#
+# La URL de trycloudflare.com cambia cuando se reinicia el contenedor
+# cloudflared (por ejemplo, al reiniciar el servidor), aunque no haya push.
+# Si cambió, actualiza PUBLIC_URL y el enlace del README.
+
+name: Vigilar URL del túnel
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+# Comparte grupo con el despliegue para no tocar el clon a la vez.
+concurrency:
+  group: despliegue-servidor
+  cancel-in-progress: false
+
+jobs:
+  vigilar:
+    runs-on: self-hosted
+
+    env:
+      RUTA_DESPLIEGUE: ${{ vars.RUTA_DESPLIEGUE || '~/Tienda-ReactGo' }}
+
+    steps:
+      - name: Sincronizar la URL del quick tunnel
+        run: |
+          RUTA=$(eval echo "$RUTA_DESPLIEGUE")
+          cd "$RUTA"
+          git fetch origin main
+          git reset --hard origin/main
+          ./scripts/sincronizar-url.sh
