@@ -52,7 +52,7 @@ jobs:
           cd "$RUTA"
           # nginx tarda un momento en aceptar conexiones tras reconstruirse.
           for intento in $(seq 1 10); do
-            if docker compose --env-file .env.deploy exec -T web wget -qO- http://localhost/api/health | grep -q '"status":"ok"'; then
+            if docker compose --env-file .env.deploy exec -T web wget -qO- http://127.0.0.1/api/health | grep -q '"status":"ok"'; then
               echo "La API responde correctamente"
               exit 0
             fi

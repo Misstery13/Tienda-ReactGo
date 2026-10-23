@@ -149,8 +149,8 @@ Los seis servicios deben decir `Up`. `postgres` y `redis` además `(healthy)`.
 Desde el propio servidor, contra la red interna de Docker:
 
 ```bash
-docker compose --env-file .env.deploy exec web wget -qO- http://localhost/api/health
-docker compose --env-file .env.deploy exec web wget -qO- http://localhost/api/saas/health
+docker compose --env-file .env.deploy exec web wget -qO- http://127.0.0.1/api/health
+docker compose --env-file .env.deploy exec web wget -qO- http://127.0.0.1/api/saas/health
 ```
 
 Ambos deben responder `"status":"ok"`.
