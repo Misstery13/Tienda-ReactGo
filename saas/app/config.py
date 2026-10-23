@@ -1,6 +1,7 @@
 """Configuración del servicio leída del entorno (.env)."""
 
 from functools import lru_cache
+from urllib.parse import quote
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -30,9 +31,15 @@ class Settings(BaseSettings):
 
     @property
     def dsn(self) -> str:
-        """Cadena de conexión para asyncpg."""
+        """Cadena de conexión para asyncpg.
+
+        El usuario y la contraseña van codificados: sin esto, una clave
+        con "/" o "@" rompe el análisis de la URL.
+        """
+        usuario = quote(self.db_user, safe="")
+        clave = quote(self.db_password, safe="")
         return (
-            f"postgresql://{self.db_user}:{self.db_password}"
+            f"postgresql://{usuario}:{clave}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
         )
 

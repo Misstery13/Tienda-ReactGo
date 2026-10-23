@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
+	neturl "net/url"
 	"os"
 	"time"
 
@@ -31,19 +33,21 @@ func env(clave, porDefecto string) string {
 // ConectarDB abre el pool de conexiones y verifica que la base responda.
 // Devuelve el pool para inyectarlo donde haga falta, sin variables globales.
 func ConectarDB() (*pgxpool.Pool, error) {
-	url := os.Getenv("DATABASE_URL")
-	if url == "" {
-		url = fmt.Sprintf(
-			"postgres://%s:%s@%s:%s/%s?sslmode=disable",
-			env("DB_USER", "multicatalogo"),
-			env("DB_PASSWORD", "multicatalogo"),
-			env("DB_HOST", "localhost"),
-			env("DB_PORT", "5432"),
-			env("DB_NAME", "multicatalogo"),
-		)
+	conexion := os.Getenv("DATABASE_URL")
+	if conexion == "" {
+		// net/url escapa usuario y contraseña: sin esto, una clave con
+		// "/" o "@" rompe la cadena de conexión.
+		dsn := neturl.URL{
+			Scheme: "postgres",
+			User:   neturl.UserPassword(env("DB_USER", "multicatalogo"), env("DB_PASSWORD", "multicatalogo")),
+			Host:   net.JoinHostPort(env("DB_HOST", "localhost"), env("DB_PORT", "5432")),
+			Path:   "/" + env("DB_NAME", "multicatalogo"),
+		}
+		dsn.RawQuery = "sslmode=disable"
+		conexion = dsn.String()
 	}
 
-	cfg, err := pgxpool.ParseConfig(url)
+	cfg, err := pgxpool.ParseConfig(conexion)
 	if err != nil {
 		return nil, fmt.Errorf("configuración de conexión inválida: %w", err)
 	}
