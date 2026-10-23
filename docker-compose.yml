@@ -10,6 +10,10 @@
 #
 # Solo 'web' se expone hacia afuera, y a través del túnel: ningún puerto
 # de la base de datos queda abierto a internet.
+#
+# Se levanta con su propio archivo de variables, para no pisar el .env
+# que usa el frontend en desarrollo:
+#   docker compose --env-file .env.deploy up -d --build
 
 services:
   postgres:

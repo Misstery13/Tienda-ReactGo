@@ -28,10 +28,13 @@ son invisibles desde fuera de la red de Docker.
 ## 2. Configurar las variables
 
 ```bash
-cp .env.deploy.example .env
+cp .env.deploy.example .env.deploy
 ```
 
-Edita `.env` y rellena:
+> Es `.env.deploy`, **no** `.env`. El `.env` lo usa el frontend en
+> desarrollo y se sobrescribiría.
+
+Edita `.env.deploy` y rellena:
 
 | Variable | Qué poner |
 |---|---|
@@ -46,7 +49,7 @@ Edita `.env` y rellena:
 ## 3. Levantar
 
 ```bash
-docker compose up -d --build
+docker compose --env-file .env.deploy up -d --build
 ```
 
 La primera vez tarda: compila Go, instala las dependencias de Python y
@@ -87,7 +90,7 @@ docker compose exec postgres psql -U multicatalogo -d multicatalogo \
 | Reiniciar un servicio | `docker compose restart backend` |
 | Apagar todo | `docker compose down` |
 | Apagar y borrar datos | `docker compose down -v` |
-| Actualizar tras un cambio | `git pull && docker compose up -d --build` |
+| Actualizar tras un cambio | `git pull && docker compose --env-file .env.deploy up -d --build` |
 
 ### Respaldo de la base
 
@@ -120,7 +123,7 @@ entornos pueden convivir en la misma máquina.
 
 | Síntoma | Causa probable |
 |---|---|
-| `falta JWT_SECRET` al levantar | No copiaste `.env.deploy.example` a `.env` |
+| `falta JWT_SECRET` al levantar | Falta el `--env-file .env.deploy` en el comando |
 | El túnel no conecta | Token mal copiado, o el hostname no apunta a `web:80` |
 | 502 en `/api/` | El backend no arrancó; mira `docker compose logs backend` |
 | La web carga pero el login falla | Revisa que `PUBLIC_URL` tenga `https://` y sea el dominio real |

@@ -41,3 +41,6 @@ __pycache__/
 # Credenciales del túnel de Cloudflare
 cloudflared/credentials.json
 cloudflared/*.json
+
+# Variables del despliegue (contienen secretos)
+.env.deploy
