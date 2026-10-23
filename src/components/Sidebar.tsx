@@ -42,7 +42,12 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
   return (
     <aside className={`${isCollapsed ? "fixed inset-y-0 left-0 z-50 w-full -translate-x-full opacity-0 pointer-events-none sm:static sm:inset-auto sm:flex sm:w-20 sm:translate-x-0 sm:opacity-100 sm:pointer-events-auto" : "fixed inset-0 z-50 flex w-full translate-x-0 opacity-100 pointer-events-auto sm:static sm:inset-auto sm:w-64"} bg-teal-500 text-white flex-col shrink-0 overflow-y-auto will-change-transform transition-[transform,opacity,width] duration-500 ease-in-out`}>
       <div className="p-4 border-b border-slate-700 text-xl font-bold">
-        {!isCollapsed && <span>MultiCatálogo</span>}
+        {!isCollapsed && (
+          <>
+            <span className="block">MultiCatálogo</span>
+            <span className="block text-sm font-normal text-teal-50">Diana Melena</span>
+          </>
+        )}
       </div>
       <nav className="flex-1 p-2 sm:p-4 space-y-2">
         {items.map((item) => {
