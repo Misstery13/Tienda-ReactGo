@@ -75,7 +75,7 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
           );
         })}
       </nav>
-      {/* Solo aparece si el navegador permite instalar la PWA y aún no está instalada */}
+      {/* Aparece mientras la PWA no esté instalada */}
       {puedeInstalar && (
         <div className="p-2 sm:px-4">
           <button

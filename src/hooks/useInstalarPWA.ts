@@ -29,8 +29,24 @@ const yaInstalada = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
   (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
-// iPhone y iPad no lanzan el evento: allí se instala desde "Compartir".
-const esIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+// Instrucciones para cuando el navegador no ofrece la instalación directa
+// (Safari, Firefox, o Chrome si el aviso se cerró antes y quedó silenciado).
+const instruccionesManuales = () => {
+  const ua = navigator.userAgent;
+  if (/iphone|ipad|ipod/i.test(ua)) {
+    return 'En iPhone o iPad: toca "Compartir" y luego "Agregar a inicio".';
+  }
+  if (/android/i.test(ua)) {
+    return 'En Android: abre el menú ⋮ del navegador y elige "Instalar app" o "Agregar a pantalla de inicio".';
+  }
+  if (/firefox/i.test(ua)) {
+    return "Firefox no permite instalar apps web en computadora. Abre esta página en Chrome o Edge para instalarla.";
+  }
+  if (/safari/i.test(ua) && !/chrome|chromium|edg/i.test(ua)) {
+    return 'En Safari: menú Archivo > "Agregar al Dock".';
+  }
+  return 'En Chrome o Edge: usa el ícono de instalar a la derecha de la barra de direcciones, o el menú ⋮ > "Transmitir, guardar y compartir" > "Instalar MultiCatálogo".';
+};
 
 export function useInstalarPWA() {
   const [, forzar] = useState(0);
@@ -44,7 +60,8 @@ export function useInstalarPWA() {
   }, []);
 
   const instalada = yaInstalada();
-  const puedeInstalar = !instalada && (eventoGuardado !== null || esIOS());
+  // El botón se muestra siempre que la app no esté instalada.
+  const puedeInstalar = !instalada;
 
   const instalar = async () => {
     if (eventoGuardado) {
@@ -52,8 +69,8 @@ export function useInstalarPWA() {
       await eventoGuardado.userChoice;
       eventoGuardado = null;
       avisar();
-    } else if (esIOS()) {
-      alert('Para instalar MultiCatálogo: toca "Compartir" y luego "Agregar a inicio".');
+    } else {
+      alert(`Para instalar MultiCatálogo:\n\n${instruccionesManuales()}`);
     }
   };
 
