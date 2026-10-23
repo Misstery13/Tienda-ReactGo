@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
-import { ClipboardList, House, LayoutGrid, Package, Receipt, Store, Users, Wallet, type LucideIcon } from "lucide-react";
+import { ClipboardList, Download, House, LayoutGrid, Package, Receipt, Store, Users, Wallet, type LucideIcon } from "lucide-react";
 import { useAuth } from "../context/auth";
+import { useInstalarPWA } from "../hooks/useInstalarPWA";
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -29,6 +30,7 @@ const NAV_ITEMS: NavItem[] = [
 const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
   const { user } = useAuth();
   const { pathname } = useLocation();
+  const { puedeInstalar, instalar } = useInstalarPWA();
 
   const handleOptionClick = () => {
     if (!isCollapsed) {
@@ -73,6 +75,21 @@ const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
           );
         })}
       </nav>
+      {/* Solo aparece si el navegador permite instalar la PWA y aún no está instalada */}
+      {puedeInstalar && (
+        <div className="p-2 sm:px-4">
+          <button
+            type="button"
+            onClick={instalar}
+            title="Instalar app"
+            aria-label="Instalar app"
+            className={`${isCollapsed ? "text-center" : "text-left"} w-full p-3 rounded bg-white text-teal-700 font-semibold transition hover:bg-teal-50`}
+          >
+            <Download size={20} aria-hidden="true" className="inline-block" />
+            {!isCollapsed && <span className="ml-3">Instalar app</span>}
+          </button>
+        </div>
+      )}
       <div className="p-4 border-t border-teal-600 text-xs text-teal-50">
         {isCollapsed ? (
           <p className="text-center uppercase">{user?.rol}</p>
