@@ -66,13 +66,13 @@ services:
       # pero se deja configurado por si se accede desde otro dominio.
       CORS_ORIGINS: ${PUBLIC_URL:?falta PUBLIC_URL}
       APP_ENV: production
-      PORT: 
+      PORT: 3000
     healthcheck:
-    test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
-    interval: 10s
-    timeout: 5s
-    retries: 12
-    start_period: 20s
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     depends_on:
       postgres:
         condition: service_healthy
