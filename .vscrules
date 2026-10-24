@@ -2,16 +2,16 @@
 
 ## Navegación
 - NUNCA hagas escaneos recursivos ni leas carpetas completas.
-- Consulta primero `PROJECT_MAP.md` para ubicar el archivo exacto antes de leer código.
+- Consulta primero `docs/PROJECT_MAP.md` para ubicar el archivo exacto antes de leer código.
 
 ## Seguimiento de tareas
-- Al iniciar cualquier sesión o tarea, lee PRIMERO `REQUIREMENTS_CHECKLIST.md` para
+- Al iniciar cualquier sesión o tarea, lee PRIMERO `docs/REQUIREMENTS_CHECKLIST.md` para
   conocer el estado y qué falta por implementar.
 - No explores el código para adivinar el progreso.
 
 ## Actualización continua
 - Cada vez que completes una tarea, prueba o endpoint con éxito, actualiza
-  inmediatamente `REQUIREMENTS_CHECKLIST.md`: marca la casilla (`- [x]`) y actualiza
+  inmediatamente `docs/REQUIREMENTS_CHECKLIST.md`: marca la casilla (`- [x]`) y actualiza
   la sección "Estado General".
 
 ## Ahorro de tokens
