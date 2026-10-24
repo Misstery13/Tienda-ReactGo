@@ -17,12 +17,13 @@ Toda la documentación está en [`docs/`](docs):
 
 | Documento | Contenido |
 |---|---|
-| [PROJECT_MAP.md](docs/PROJECT_MAP.md) | Arquitectura, endpoints y ubicación de los archivos |
+| [PROJECT_MAP.md](docs/PROJECT_MAP.md) | Arquitectura, endpoints, migraciones y ubicación de los archivos |
 | [REQUIREMENTS_CHECKLIST.md](docs/REQUIREMENTS_CHECKLIST.md) | Requisitos del proyecto y avance por unidad |
-| [despliegue/servidor-ubuntu.md](docs/despliegue/servidor-ubuntu.md) | Despliegue en un servidor Ubuntu con Cloudflare Tunnel |
-| [despliegue/maquina-propia.md](docs/despliegue/maquina-propia.md) | Despliegue en máquina propia y desarrollo local |
+| [despliegue.md](docs/despliegue.md) | Servidor con Docker, Cloudflare Tunnel y despliegue automático |
+| [desarrollo-local.md](docs/desarrollo-local.md) | Cómo levantar el proyecto para programar |
 
 ## Despliegue automático
 
 Cada push a `main` se despliega solo en el servidor mediante un runner
 self-hosted de GitHub Actions (`.github/workflows/desplegar.yml`).
+Detalles en [docs/despliegue.md](docs/despliegue.md#8-despliegue-automático-con-github-actions).

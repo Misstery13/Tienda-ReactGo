@@ -17,8 +17,8 @@
 
 | Ítem | Valor |
 |---|---|
-| **Hito actual** | **Unidades 1 y 2 completadas** (SPA con sesión JWT persistida + backend seguro: bcrypt, JWT real, rutas protegidas, health con deps) |
-| **Última tarea completada** | U3-T1: scaffold FastAPI en `saas/` — multitenancy por discriminador, JWT compartido con Go, planes y suscripciones — 2026-10-16 |
+| **Hito actual** | **Unidades 1, 2 y 4 completadas; Unidad 3 en curso** (SaaS listo, falta el aislamiento por tenant en Go). App desplegada con despliegue automático e instalable como PWA |
+| **Última tarea completada** | U4: despliegue en servidor con Cloudflare Tunnel, runner self-hosted y PWA — 2026-10-23 |
 | **Siguiente tarea pendiente** | U3-T2: aislar por tenant las consultas del núcleo en Go (hoy `tenant_id` existe pero el backend aún no filtra por él) |
 | **Bloqueadores** | Los contenedores Docker de otro proyecto ocupan **:3000** y **:5173** → este proyecto corre en **:3001** (API) y **:5174** (Vite). PostgreSQL del proyecto en **:5433** (el PostgreSQL 18 del instalador EDB ocupa el 5432) |
 
@@ -117,18 +117,23 @@ React SPA (:5174) ──► Go/Fiber (:3001) ──► PostgreSQL 16 (:5433) + R
 
 - [ ] Límite de intentos en `/api/login` contra fuerza bruta
 - [ ] Refresh token (hoy la sesión expira a las 2 h y obliga a iniciar sesión otra vez)
-- [ ] HTTPS en despliegue
+- [x] HTTPS en despliegue (lo termina Cloudflare Tunnel)
 
 ## Funcionalidad del sistema
 
-- [ ] CRUD de productos (el panel de administración solo lee)
-- [ ] Historial de pedidos para el cliente (`GET /api/pedidos`)
-- [ ] Alta de referidos y enlace de invitación
-- [ ] Registro de usuarios y recuperación de contraseña
-- [ ] Estados del pedido (pendiente, pagado, enviado, entregado)
-- [ ] Mostrar y respetar el stock en el catálogo
-- [ ] Búsqueda y paginación en el servidor
-- [ ] Pruebas automatizadas (la inyección de dependencias ya las habilita)
+- [x] CRUD de productos: alta, edición y desactivación (borrado lógico, `006_productos.sql`)
+- [x] Historial de pedidos para el cliente (`GET /api/pedidos/mios`, `MisPedidos.tsx`)
+- [x] Alta de referidos y enlace de invitación (`codigo_referido` o `?ref=` en `/api/register`)
+- [x] Registro de usuarios (`POST /api/register`, `Registro.tsx`)
+- [ ] Recuperación de contraseña
+- [x] Estados del pedido: pendiente, preparando, enviado, entregado, cancelado (`007_pedidos.sql`)
+- [x] Ledger de comisiones (`008_comisiones.sql`) y liquidaciones a distribuidores (`009_liquidaciones.sql`)
+- [x] Reportes: resumen de ventas, top productos y top referidos
+- [x] Verificado en vivo (2026-10-23): 6 productos creados, 6 registros con referido,
+      10 checkouts, cambios de estado y una liquidación, todo por la API
+- [ ] Mostrar el stock en el catálogo del cliente (hoy solo lo ve el administrador; el checkout sí lo respeta)
+- [ ] Búsqueda y paginación en el servidor (parcial: hecha en la administración de productos y pedidos, falta en el catálogo público)
+- [ ] Pruebas automatizadas (parcial: solo `backend/domain/comisiones_test.go`)
 
 ---
 
@@ -160,8 +165,15 @@ React SPA (:5174) ──► Go/Fiber (:3001) ──► PostgreSQL 16 (:5433) + R
 - [ ] Aplicar los límites del plan al crear usuarios o productos
 - [ ] Registro self-service de un tenant nuevo con su primer administrador
 
-# UNIDAD 4 — DESPLIEGUE (pendiente)
+# UNIDAD 4 — DESPLIEGUE
 
-- [ ] Proxy inverso (Caddy/Nginx): `/api/tx/*` → Go, `/api/saas/*` → FastAPI
-- [ ] SSL y variables de entorno de producción
-- [ ] `docker compose` único que levante los cuatro servicios
+Guía completa: [despliegue.md](despliegue.md).
+
+- [x] Proxy inverso nginx (`nginx.conf`): `/api/saas/*` → FastAPI, `/api/*` → Go, `/*` → SPA
+- [x] SSL por Cloudflare Tunnel y variables de producción en `.env.deploy` (fuera del repositorio)
+- [x] `docker compose` único que levanta los seis servicios (web, backend, saas, postgres, redis, cloudflared)
+- [x] Desplegado en un servidor Ubuntu propio, sin abrir puertos del router (2026-10-23)
+- [x] Despliegue automático: runner self-hosted de GitHub Actions en cada push a `main`
+- [x] La URL del quick tunnel se sincroniza sola en `PUBLIC_URL` y en el README
+- [x] PWA: manifest, service worker (sin caché de la API), íconos propios y botón "Instalar app"
+- [ ] Dominio propio para tener una URL fija (hoy es un quick tunnel de trycloudflare.com)

@@ -7,10 +7,11 @@ Mapa arquitectónico para ubicar archivos sin escanear el proyecto.
 
 | Capa | Tecnología | Puerto |
 |---|---|---|
-| Frontend | React 19 + TypeScript + Vite + Tailwind 4 + React Router 7 | 5173 |
-| Núcleo transaccional | Go 1.26 + Fiber v2 (U2) | 3000 |
+| Frontend | React 19 + TypeScript + Vite 8 + Tailwind 4 + React Router 7, PWA | 5173 |
+| Núcleo transaccional | Go + Fiber v2 (U2) | 3000 |
 | Capa SaaS/multitenant | Python 3 + FastAPI + asyncpg (U3) | 8000 |
-| Datos | PostgreSQL 16 + Redis | 5433 / 6379 |
+| Datos | PostgreSQL 16 + Redis (caché) | 5433 / 6379 |
+| Despliegue | Docker Compose + nginx + Cloudflare Tunnel | 80 (interno) |
 
 > Si otros proyectos ocupan esos puertos, use `PORT` (Go) y `PORT` (SaaS).
 > En esta máquina los contenedores de otro proyecto toman 3000 y 5173, por lo
@@ -23,13 +24,18 @@ Mapa arquitectónico para ubicar archivos sin escanear el proyecto.
 ## Estructura
 
 ```
-Practica03/              # raíz del repo = frontend
+Tienda-ReactGo/          # raíz del repo = frontend
 ├── src/                 # código React
+├── public/              # íconos de la PWA (generados desde pwa-icon.svg)
 ├── backend/             # núcleo transaccional en Go (U2)
-│   └── database/        # TODAS las migraciones SQL (001 a 004)
+│   └── database/        # TODAS las migraciones SQL (001 a 009)
 ├── saas/                # capa SaaS/multitenant en FastAPI (U3)
-├── public/              # estáticos servidos por Vite
-└── .env                 # VITE_API_URL
+├── docs/                # documentación
+├── scripts/             # scripts del servidor (sincronizar-url.sh)
+├── .github/workflows/   # despliegue automático (runner self-hosted)
+├── docker-compose.yml   # despliegue completo (6 servicios)
+├── Dockerfile           # frontend: build de Vite + nginx
+└── nginx.conf           # proxy inverso: /api/saas, /api y la SPA
 ```
 
 ## Frontend — `src/`
@@ -39,57 +45,108 @@ Practica03/              # raíz del repo = frontend
 | `main.tsx` | Punto de entrada; monta `<App />` |
 | `App.tsx` | Rutas + guardas `ProtectedRoute` / `AdminRoute` + `CartBoundary` |
 | `index.css` | Entrada de Tailwind |
-| `context/AuthContext.tsx` | Sesión: `user {email, rol}`, `token`, `login`, `logout` |
-| `context/CartContext.tsx` | Carrito persistido por usuario en localStorage |
-| `services/api.ts` | `loginRequest()` → `POST /api/login`. Lee `VITE_API_URL` |
-| `services/productosService.ts` | `getProductos()` / `getProductoById()` — hoy mock |
-| `data/productos.ts` | 8 productos mock con `descripcion`, `categoria`, `galeria` |
-| `data/red.ts` | Árbol de referidos + funciones puras de comisiones |
+| `context/AuthContext.tsx`, `auth.ts` | Sesión: `user {email, rol}`, `token`, `login`, `logout` |
+| `context/CartContext.tsx`, `cart.ts` | Carrito persistido por usuario en localStorage |
+| `services/http.ts` | `apiFetch()` con el JWT; lee y guarda la sesión. Lee `VITE_API_URL` |
+| `services/api.ts` | `loginRequest()` → `POST /api/login` |
+| `services/productosService.ts` | Catálogo público y CRUD de administración |
+| `services/checkoutService.ts` | `crearPedido()` → `POST /api/checkout` |
+| `services/pedidosService.ts` | Pedidos propios, todos (admin) y cambio de estado |
+| `services/redService.ts` | Árbol de referidos y comisiones propias |
+| `services/reportesService.ts` | KPIs, rankings, deuda y liquidaciones |
+| `services/usuariosService.ts` | Registro y administración de cuentas |
+| `types/producto.ts` | Tipo `Producto` |
+| `domain/red.ts` | Tipo `Referido` + funciones puras de comisiones |
+| `hooks/useInstalarPWA.ts` | Botón "Instalar app" (`beforeinstallprompt`) |
 
 ### Componentes — `src/components/`
 
 | Archivo | Vista |
 |---|---|
 | `Layout.tsx` | Sidebar + Navbar + `<Outlet />` |
-| `Sidebar.tsx` | Navegación filtrada por rol |
+| `Sidebar.tsx` | Navegación filtrada por rol, autora y botón de instalar la PWA |
 | `Navbar.tsx` | Título por rol, insignia, carrito, logout |
-| `Login.tsx` | Formulario; consume la API real |
+| `Login.tsx` / `Registro.tsx` | Inicio de sesión y registro con código de referido |
 | `Storefront.tsx` | Tienda full-screen (hero, categorías, destacados) |
 | `Catalogo.tsx` | Grilla + búsqueda + filtro por categoría (`useMemo`) |
 | `DetalleProducto.tsx` | Detalle con galería y lightbox (`useParams`) |
 | `Carrito.tsx` | Ítems, cantidades, total |
 | `Checkout.tsx` | Formulario de envío y pago simulado |
 | `Confirmacion.tsx` | Número de pedido y resumen |
-| `Dashboard.tsx` | KPIs derivados de `data/red.ts` (solo admin) |
-| `MiRed.tsx` | Árbol multinivel recursivo (solo admin) |
+| `MisPedidos.tsx` | Historial de pedidos del usuario |
+| `MiRed.tsx` | Árbol multinivel recursivo, código de invitación y comisiones |
+| `Dashboard.tsx` | KPIs y rankings reales (solo admin) |
+| `AdminProductos.tsx` | Alta, edición y desactivación de productos (solo admin) |
+| `AdminPedidos.tsx` | Todos los pedidos y su estado (solo admin) |
+| `AdminLiquidaciones.tsx` | Deuda por distribuidor y pagos (solo admin) |
 
 ### Rutas React
 
-`/login` · `/` (Dashboard, admin) · `/mi-red` (admin) · `/tienda` · `/catalogo`
-· `/producto/:id` · `/carrito` · `/checkout` · `/confirmacion`
+Públicas: `/login` · `/registro`
+
+Ambos roles: `/tienda` · `/catalogo` · `/producto/:id` · `/carrito` · `/checkout`
+· `/confirmacion` · `/mis-pedidos` · `/mi-red`
+
+Solo admin: `/` (Dashboard) · `/admin/productos` · `/admin/pedidos` · `/admin/liquidaciones`
+
+### PWA
+
+`vite-plugin-pwa` (configurado en `vite.config.ts`) genera `manifest.webmanifest`
+y un service worker de Workbox. La interfaz y las fotos de productos se guardan
+para abrir sin conexión; **la API no se cachea**. Los íconos se regeneran con
+`npx pwa-assets-generator` (`pwa-assets.config.ts`).
 
 ## Backend — `backend/`
 
-| Archivo | Responsabilidad |
+| Ruta | Responsabilidad |
 |---|---|
-| `main.go` | Arranque de Fiber, CORS y `:3000` |
+| `main.go` | Arranque de Fiber, CORS, inyección de dependencias y puerto (`PORT`) |
 | `routes/routes.go` | Registro de endpoints |
-| `controllers/authController.go` | `Login`: valida entrada y responde token + rol |
-| `controllers/prodController.go` | `GetProductos`, `GetProductoPorID` |
-| `controllers/healthController.go` | `HealthCheck` |
-| `models/models.go` | `LoginRequest`, `LoginResponse`, `Usuario`, `Producto`, `APIError` |
-| `repository/repository.go` | **Única fuente de datos.** Aquí entra PostgreSQL en la Fase 2 |
+| `controllers/` | Solo HTTP: validan la entrada y responden (`auth`, `prod`, `checkout`, `pedido`, `red`, `usuario`, `admin`, `health`) |
+| `middleware/auth.go` | `RequireAuth` (JWT) y `RequireAdmin` |
+| `auth/jwt.go` | Firma y verificación de tokens |
+| `config/` | Conexión a PostgreSQL (`db.go`) y Redis (`redis.go`) |
+| `domain/` | Reglas puras: comisiones (con pruebas) y estados del pedido |
+| `models/models.go` | Estructuras de entrada y salida, `APIError` |
+| `repository/` | **Única fuente de datos.** `postgres.go` + un archivo por agregado; `cached.go` envuelve las lecturas con Redis |
 
 ### Endpoints
 
-| Método | Ruta | Respuesta |
+| Método | Ruta | Acceso |
 |---|---|---|
-| GET | `/api/health` | `{status, message}` |
-| POST | `/api/login` | `{token, email, rol}` · 400 / 401 con `APIError` |
-| GET | `/api/productos` | Array de productos |
-| GET | `/api/productos/:id` | Producto · 400 si el id no es número · 404 si no existe |
+| GET | `/api/health` | Público. Estado con ping a PostgreSQL y Redis |
+| POST | `/api/login` | Público. `{token, email, rol}` |
+| POST | `/api/register` | Público. Acepta `codigo_referido` o `?ref=` |
+| GET | `/api/productos`, `/api/productos/:id` | Público |
+| POST | `/api/checkout` | Sesión |
+| GET | `/api/pedidos/mios`, `/api/pedidos/:id` | Sesión |
+| GET | `/api/red/mia`, `/api/comisiones/mias`, `/api/liquidaciones/mias` | Sesión |
+| GET | `/api/red` | Admin |
+| GET / POST / PUT / DELETE | `/api/admin/productos`, `/api/productos[/:id]` | Admin. DELETE desactiva (borrado lógico) |
+| GET / PATCH | `/api/pedidos`, `/api/pedidos/:id/estado` | Admin |
+| GET / POST | `/api/liquidaciones`, `/api/comisiones/deuda` | Admin |
+| GET | `/api/reportes/resumen`, `/top-productos`, `/top-referidos` | Admin |
+| GET / PATCH | `/api/usuarios`, `/api/usuarios/:id` | Admin |
 
 Formato de error estándar: `{ "status": int, "message": string, "details": any? }`
+
+Estados del pedido: `pendiente` → `preparando` → `enviado` → `entregado`, o `cancelado`.
+
+### Migraciones — `backend/database/`
+
+PostgreSQL las ejecuta en orden alfabético solo al crear el volumen.
+
+| Archivo | Contenido |
+|---|---|
+| `001_init.sql` | Esquema base y datos semilla |
+| `002_checkout.sql` | Pedidos, stock y comisiones |
+| `003_seguridad.sql` | Contraseñas con bcrypt e índices |
+| `004_saas.sql` | Planes, tenants y suscripciones (multitenancy) |
+| `005_registro.sql` | Registro de clientes y vínculo usuario ↔ referido |
+| `006_productos.sql` | Administración del catálogo con borrado lógico |
+| `007_pedidos.sql` | Ciclo de vida del pedido |
+| `008_comisiones.sql` | Ledger de comisiones |
+| `009_liquidaciones.sql` | Liquidaciones a distribuidores |
 
 ### Cuentas de prueba
 
@@ -118,14 +175,10 @@ de Fiber es válido aquí, sin duplicar la autenticación.
 Modelo de multitenancy: **discriminador** (`tenant_id` en cada tabla).
 Documentación interactiva: <http://localhost:8000/api/saas/docs>
 
-## Arranque
+## Arranque y despliegue
 
-```
-docker:    cd backend && docker compose up -d     # PostgreSQL + Redis + SaaS
-backend:   cd backend && go run .                 # :3000
-saas:      cd saas && ./.venv/bin/uvicorn app.main:app --port 8000
-frontend:  npm run dev                            # :5173
-```
+- Desarrollo local: [desarrollo-local.md](desarrollo-local.md)
+- Servidor con Docker, túnel y despliegue automático: [despliegue.md](despliegue.md)
 
 ## Reglas que no se rompen
 
