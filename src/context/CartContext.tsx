@@ -1,6 +1,6 @@
 // src/context/CartContext.tsx
 import { useEffect, useState, type ReactNode } from 'react';
-import type { Producto } from '../data/productos';
+import type { Producto } from '../types/producto';
 import { useAuth } from './auth';
 import { CartContext, CART_STORAGE_PREFIX, type CartItem } from './cart';
 

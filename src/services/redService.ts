@@ -3,7 +3,7 @@
 // La identidad sale del token: el backend ignora cualquier email enviado por el cliente.
 
 import { apiFetch } from "./http";
-import type { Referido } from "../data/red";
+import type { Referido } from "../domain/red";
 
 // GET /api/red — árbol global, solo admin.
 export const getRed = (): Promise<Referido> =>

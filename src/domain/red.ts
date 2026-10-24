@@ -1,4 +1,4 @@
-// src/data/red.ts
+// src/domain/red.ts
 // Tipo del árbol multinivel y funciones puras de cálculo.
 // El árbol ya no vive aquí: proviene de PostgreSQL a través de GET /api/red
 // (ver services/redService.ts). Estas funciones operan sobre el árbol recibido.

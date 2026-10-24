@@ -1,4 +1,4 @@
-// src/data/productos.ts
+// src/types/producto.ts
 // Tipo del catálogo. Los datos ya no viven aquí: provienen de PostgreSQL
 // a través de GET /api/productos (ver services/productosService.ts).
 

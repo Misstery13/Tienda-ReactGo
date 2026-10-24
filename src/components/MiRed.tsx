@@ -8,7 +8,7 @@ import {
   nivelAlcanzado,
   TASA_COMISION,
   type Referido,
-} from '../data/red';
+} from '../domain/red';
 import { getMiRed, getMisComisiones, type ResumenComisiones } from '../services/redService';
 
 const COLOR_ESTADO: Record<string, string> = {

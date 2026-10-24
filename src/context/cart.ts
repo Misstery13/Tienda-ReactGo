@@ -1,7 +1,7 @@
 // src/context/cart.ts
 // Contexto, tipos y hook del carrito, separados del Provider.
 import { createContext, useContext } from 'react';
-import type { Producto } from '../data/productos';
+import type { Producto } from '../types/producto';
 
 // Elemento del carrito: un producto + la cantidad seleccionada
 export interface CartItem extends Producto {

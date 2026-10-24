@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/auth';
 import { getProductos, obtenerCategorias } from '../services/productosService';
-import type { Producto } from '../data/productos';
+import type { Producto } from '../types/producto';
 
 const Storefront = () => {
   const { user } = useAuth();

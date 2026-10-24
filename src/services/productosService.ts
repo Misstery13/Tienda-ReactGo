@@ -3,7 +3,7 @@
 // Los datos provienen de PostgreSQL a través de GET /api/productos.
 
 import { apiFetch, ApiError } from "./http";
-import type { Producto } from "../data/productos";
+import type { Producto } from "../types/producto";
 
 // GET /api/productos
 export const getProductos = (): Promise<Producto[]> =>

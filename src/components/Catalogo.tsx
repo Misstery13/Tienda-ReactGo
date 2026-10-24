@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/cart';
 import { getProductos, obtenerCategorias } from '../services/productosService';
-import type { Producto } from '../data/productos';
+import type { Producto } from '../types/producto';
 
 const Catalogo = () => {
   const { addToCart } = useCart();
